@@ -1,0 +1,16 @@
+{
+  "name": "com.halby24.xrift-vrm-exporter",
+  "displayName": "XRift VRM Exporter",
+  "version": "0.1.0",
+  "unity": "2022.3",
+  "description": "VRM 1.0 exporter for XRift platform with NDMF integration",
+  "author": {
+    "name": "halby24"
+  },
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
+  },
+  "vpmDependencies": {
+    "nadena.dev.ndmf": ">=1.8.0"
+  }
+}

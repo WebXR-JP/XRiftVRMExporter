@@ -1,0 +1,47 @@
+{
+  "name": "com.halby24.xrift-vrm-exporter",
+  "rootNamespace": "XRift.VrmExporter",
+  "references": [
+    "GUID:62ced99b048af7f4d8dfe4bed8373d76"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "Newtonsoft.Json.dll",
+    "VRCCore-Editor.dll",
+    "VRC.Dynamics.dll",
+    "VRCSDK3A.dll",
+    "VRCSDKBase.dll",
+    "VRC.SDK3.Dynamics.Constraint.dll",
+    "VRC.SDK3.Dynamics.PhysBone.dll"
+  ],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [
+    {
+      "name": "com.vrchat.avatars",
+      "expression": "3.7",
+      "define": "XRIFT_HAS_VRCHAT_SDK"
+    },
+    {
+      "name": "jp.lilxyzw.liltoon",
+      "expression": "1.8",
+      "define": "XRIFT_HAS_LILTOON"
+    },
+    {
+      "name": "nadena.dev.ndmf",
+      "expression": "1.8",
+      "define": "XRIFT_HAS_NDMF_PLATFORM"
+    },
+    {
+      "name": "nadena.dev.modular-avatar",
+      "expression": "1.13",
+      "define": "XRIFT_HAS_MODULAR_AVATAR"
+    }
+  ],
+  "noEngineReferences": false
+}
