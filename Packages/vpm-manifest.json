@@ -1,0 +1,127 @@
+{
+  "dependencies": {
+    "com.vrchat.avatars": {
+      "version": "3.10.1"
+    },
+    "com.vrchat.base": {
+      "version": "3.10.1"
+    },
+    "com.triturbo.blendshare": {
+      "version": "1.0.3"
+    },
+    "net.rs64.tex-trans-tool": {
+      "version": "1.0.1"
+    },
+    "com.github.hkrn.ndmf-vrm-exporter": {
+      "version": "1.2.2"
+    },
+    "vrchat.blackstartx.gesture-manager": {
+      "version": "3.9.7"
+    },
+    "jp.lilxyzw.avatar-utils": {
+      "version": "2.1.2"
+    },
+    "dev.vrlabs.av3manager": {
+      "version": "2.1.2"
+    },
+    "nadena.dev.modular-avatar.resonite": {
+      "version": "0.0.46"
+    },
+    "com.ramtype0.meshia.mesh-simplification": {
+      "version": "3.0.0"
+    },
+    "com.anatawa12.avatar-optimizer": {
+      "version": "1.8.16"
+    },
+    "jp.lilxyzw.liltoon": {
+      "version": "2.3.2"
+    }
+  },
+  "locked": {
+    "com.vrchat.avatars": {
+      "version": "3.10.1",
+      "dependencies": {
+        "com.vrchat.base": "3.10.1"
+      }
+    },
+    "com.vrchat.base": {
+      "version": "3.10.1",
+      "dependencies": {}
+    },
+    "com.triturbo.blendshare": {
+      "version": "1.0.3",
+      "dependencies": {}
+    },
+    "net.rs64.tex-trans-tool": {
+      "version": "1.0.1",
+      "dependencies": {
+        "net.rs64.tex-trans-core": "^0.2.0"
+      }
+    },
+    "com.github.hkrn.ndmf-vrm-exporter": {
+      "version": "1.2.2",
+      "dependencies": {
+        "com.vrchat.avatars": ">=3.7.0",
+        "nadena.dev.ndmf": ">=1.6.0"
+      }
+    },
+    "net.rs64.tex-trans-core": {
+      "version": "0.2.0",
+      "dependencies": {}
+    },
+    "vrchat.blackstartx.gesture-manager": {
+      "version": "3.9.7",
+      "dependencies": {
+        "com.vrchat.avatars": ">=3.5.2 <3.11.X"
+      }
+    },
+    "jp.lilxyzw.avatar-utils": {
+      "version": "2.1.2",
+      "dependencies": {}
+    },
+    "nadena.dev.ndmf": {
+      "version": "1.10.1",
+      "dependencies": {}
+    },
+    "dev.vrlabs.av3manager": {
+      "version": "2.1.2",
+      "dependencies": {
+        "com.vrchat.avatars": "3.2 - 3.10"
+      }
+    },
+    "nadena.dev.modular-avatar.resonite": {
+      "version": "0.0.46",
+      "dependencies": {
+        "nadena.dev.modular-avatar": ">=1.13.0-beta.0 <2.0.0-a",
+        "nadena.dev.ndmf": ">=1.8.0-beta.4 <2.0.0-a"
+      }
+    },
+    "com.ramtype0.meshia.mesh-simplification": {
+      "version": "3.0.0",
+      "dependencies": {
+        "com.anatawa12.custom-localization-for-editor-extension": "^1.2.1"
+      }
+    },
+    "com.anatawa12.avatar-optimizer": {
+      "version": "1.8.16",
+      "dependencies": {
+        "com.vrchat.avatars": ">=3.7.0 <3.11.0",
+        "nadena.dev.ndmf": "^1.6.0"
+      }
+    },
+    "nadena.dev.modular-avatar": {
+      "version": "1.15.1",
+      "dependencies": {
+        "nadena.dev.ndmf": ">=1.10.0 <2.0.0-a"
+      }
+    },
+    "jp.lilxyzw.liltoon": {
+      "version": "2.3.2",
+      "dependencies": {}
+    },
+    "com.anatawa12.custom-localization-for-editor-extension": {
+      "version": "1.2.1",
+      "dependencies": {}
+    }
+  }
+}
