@@ -1,6 +1,10 @@
+// SPDX-FileCopyrightText: 2024-present halby24
+// SPDX-License-Identifier: MPL-2.0
+
 #nullable enable
 
 #if XRIFT_HAS_NDMF_PLATFORM
+using System.IO;
 using nadena.dev.ndmf;
 using nadena.dev.ndmf.platform;
 using UnityEditor;
@@ -20,6 +24,7 @@ namespace XRift.VrmExporter.UI
         private Button? _buildButton;
         private Button? _saveAsButton;
         private Label? _statusLabel;
+        private byte[]? _lastExportedVrmData;
 
         public override GameObject AvatarRoot
         {
@@ -95,15 +100,22 @@ namespace XRift.VrmExporter.UI
                     ? $"選択中: {_avatarRoot!.name}"
                     : "アバターを選択してください";
             }
+
+            // VRMデータがない場合はSave Asを無効化
+            if (_lastExportedVrmData == null)
+            {
+                _saveAsButton?.SetEnabled(false);
+            }
         }
 
         private void OnBuildClicked()
         {
             if (_avatarRoot == null) return;
 
-            // TODO: VRM ビルド処理を実装
             Debug.Log($"[XRift VRM] Building VRM for: {_avatarRoot.name}");
             _statusLabel!.text = "ビルド中...";
+            _lastExportedVrmData = null;
+            _saveAsButton?.SetEnabled(false);
 
             // クローンを作成してビルド
             GameObject? clone = null;
@@ -115,11 +127,18 @@ namespace XRift.VrmExporter.UI
                 using var scope = new AmbientPlatform.Scope(XRiftVrmPlatform.Instance);
                 var buildContext = AvatarProcessor.ProcessAvatar(clone, XRiftVrmPlatform.Instance);
 
-                // TODO: VRM エクスポート処理
-                // var state = buildContext.GetState<XRiftBuildState>();
-
-                _statusLabel.text = "ビルド完了";
-                _saveAsButton?.SetEnabled(true);
+                // エクスポート結果を取得
+                var state = buildContext.GetState<XRiftBuildState>();
+                if (state.ExportedVrmData != null && state.ExportedVrmData.Length > 0)
+                {
+                    _lastExportedVrmData = state.ExportedVrmData;
+                    _statusLabel.text = $"ビルド完了 ({_lastExportedVrmData.Length / 1024} KB)";
+                    _saveAsButton?.SetEnabled(true);
+                }
+                else
+                {
+                    _statusLabel.text = "ビルド完了（データなし）";
+                }
             }
             catch (System.Exception e)
             {
@@ -137,7 +156,12 @@ namespace XRift.VrmExporter.UI
 
         private void OnSaveAsClicked()
         {
-            // TODO: VRM ファイルを保存
+            if (_lastExportedVrmData == null || _lastExportedVrmData.Length == 0)
+            {
+                _statusLabel!.text = "保存するVRMデータがありません";
+                return;
+            }
+
             var path = EditorUtility.SaveFilePanel(
                 "Save VRM",
                 "",
@@ -146,8 +170,17 @@ namespace XRift.VrmExporter.UI
 
             if (!string.IsNullOrEmpty(path))
             {
-                Debug.Log($"[XRift VRM] Saving to: {path}");
-                // TODO: ファイル保存処理
+                try
+                {
+                    File.WriteAllBytes(path, _lastExportedVrmData);
+                    Debug.Log($"[XRift VRM] Saved VRM to: {path}");
+                    _statusLabel!.text = $"保存完了: {Path.GetFileName(path)}";
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogException(e);
+                    _statusLabel!.text = $"保存エラー: {e.Message}";
+                }
             }
         }
     }

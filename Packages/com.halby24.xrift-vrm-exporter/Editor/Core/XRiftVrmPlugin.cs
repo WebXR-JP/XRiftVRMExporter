@@ -1,7 +1,13 @@
+// SPDX-FileCopyrightText: 2024-present halby24
+// SPDX-License-Identifier: MPL-2.0
+
 #nullable enable
 
+using System.IO;
 using nadena.dev.ndmf;
+using UnityEngine;
 using XRift.VrmExporter.Core;
+using XRift.VrmExporter.Utils;
 
 [assembly: ExportsPlugin(typeof(XRiftVrmPlugin))]
 
@@ -38,8 +44,23 @@ namespace XRift.VrmExporter.Core
 
         protected override void Execute(BuildContext context)
         {
-            // TODO: VRM エクスポート処理を実装
-            // 現時点では何もしない（スケルトン実装）
+            var state = context.GetState<XRiftBuildState>();
+            if (!state.ExportEnabled)
+            {
+                return;
+            }
+
+            var gameObject = context.AvatarRootObject;
+            var basePath = AssetPathUtils.GetTempPath(gameObject);
+            var assetSaver = new TempAssetSaver(basePath);
+
+            using var exporter = new XRiftVrmExporter(gameObject, assetSaver, state.MaterialVariants);
+            using var memoryStream = new MemoryStream();
+
+            exporter.Export(memoryStream);
+            state.ExportedVrmData = memoryStream.ToArray();
+
+            Debug.Log($"[XRift VRM Exporter] Exported VRM: {state.ExportedVrmData.Length} bytes");
         }
     }
 }

@@ -1,5 +1,8 @@
 #nullable enable
 
+using System.Collections.Generic;
+using XRift.VrmExporter.Utils;
+
 #if XRIFT_HAS_NDMF_PLATFORM
 using nadena.dev.ndmf.platform;
 #endif
@@ -28,5 +31,15 @@ namespace XRift.VrmExporter.Core
         /// エクスポートが有効かどうか
         /// </summary>
         public bool ExportEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Material Variants（衣装切り替え等）
+        /// </summary>
+        public List<MaterialVariant> MaterialVariants { get; } = new();
+
+        /// <summary>
+        /// エクスポートされたVRMデータ
+        /// </summary>
+        public byte[]? ExportedVrmData { get; set; }
     }
 }
