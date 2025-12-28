@@ -1,0 +1,6 @@
+*
+!.gitignore
+!manifest.json
+!packages-lock.json
+!vpm-manifest.json
+!com.halby24.xrift-vrm-exporter/
