@@ -11,28 +11,24 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
+using UniGLTF;
+using UniVRM10;
 using UnityEditor;
 using UnityEngine;
+using VrmLib;
+using XRift.VrmExporter.Components;
 using XRift.VrmExporter.Utils;
-using XRift.VrmExporter.VRM.Gltf;
 using Debug = UnityEngine.Debug;
 
 namespace XRift.VrmExporter.Core
 {
     /// <summary>
-    /// VRM 1.0エクスポーターのメインクラス
+    /// VRM 1.0エクスポーターのメインクラス（UniVRM統合版）
     /// </summary>
     internal sealed class XRiftVrmExporter : IDisposable
     {
-        private static readonly string VrmcVrm = "VRMC_vrm";
-        private static readonly string VrmcSpringBone = "VRMC_springBone";
-        private static readonly string VrmcSpringBoneExtendedCollider = "VRMC_springBone_extended_collider";
-        private static readonly string VrmcNodeConstraint = "VRMC_node_constraint";
-        private static readonly string VrmcMaterialsMtoon = "VRMC_materials_mtoon";
 
         public sealed class PackageJson
         {
@@ -79,182 +75,127 @@ namespace XRift.VrmExporter.Core
             private readonly string _name;
         }
 
-        private sealed class MToonTexture
-        {
-            public Texture? MainTexture { get; set; }
-            public material.TextureInfo? MainTextureInfo { get; set; }
-        }
-
         private readonly GameObject _gameObject;
         private readonly IAssetSaver _assetSaver;
         private readonly IReadOnlyList<MaterialVariant> _materialVariants;
-        private readonly exporter.Exporter _exporter;
-        private readonly Root _root;
-        private readonly SortedSet<string> _extensionsUsed;
-        private readonly IDictionary<Material, ObjectID> _materialIDs;
-        private readonly IDictionary<Material, MToonTexture> _materialMToonTextures;
-        private readonly IDictionary<Transform, ObjectID> _transformNodeIDs;
-        private readonly ISet<string> _transformNodeNames;
 
         public XRiftVrmExporter(GameObject gameObject, IAssetSaver assetSaver,
             IReadOnlyList<MaterialVariant> materialVariants)
         {
-            var packageJsonFile = File.ReadAllText($"Packages/{PackageJson.Name}/package.json");
-            var packageJson = PackageJson.LoadFromString(packageJsonFile);
-            _gameObject = gameObject;
-            _assetSaver = assetSaver;
-            _materialIDs = new Dictionary<Material, ObjectID>();
-            _materialMToonTextures = new Dictionary<Material, MToonTexture>();
-            _transformNodeIDs = new Dictionary<Transform, ObjectID>();
-            _transformNodeNames = new HashSet<string>();
-            _materialVariants = materialVariants;
-            _exporter = new exporter.Exporter();
-            _root = new Root
-            {
-                Accessors = new List<accessor.Accessor>(),
-                Asset = new asset.Asset
-                {
-                    Version = "2.0",
-                    Generator = $"{packageJson.DisplayName} {packageJson.Version}",
-                },
-                Buffers = new List<buffer.Buffer>(),
-                BufferViews = new List<buffer.BufferView>(),
-                Extensions = new Dictionary<string, JToken>(),
-                ExtensionsUsed = new List<string>(),
-                Images = new List<buffer.Image>(),
-                Materials = new List<material.Material>(),
-                Meshes = new List<mesh.Mesh>(),
-                Nodes = new List<node.Node>(),
-                Samplers = new List<material.Sampler>(),
-                Scenes = new List<scene.Scene>(),
-                Scene = new ObjectID(0),
-                Skins = new List<node.Skin>(),
-                Textures = new List<material.Texture>(),
-            };
-            _root.Scenes.Add(new scene.Scene()
-            {
-                Nodes = new List<ObjectID> { new(0) },
-            });
-            _extensionsUsed = new SortedSet<string>();
+            _gameObject = gameObject ?? throw new ArgumentNullException(nameof(gameObject));
+            _assetSaver = assetSaver ?? throw new ArgumentNullException(nameof(assetSaver));
+            _materialVariants = materialVariants ?? throw new ArgumentNullException(nameof(materialVariants));
         }
 
         public void Dispose()
         {
-            _exporter.Dispose();
+            // UniVRM統合により、Disposeするリソースは不要
         }
 
         /// <summary>
-        /// VRM 1.0形式でエクスポートを実行
+        /// VRM 1.0形式でエクスポートを実行（UniVRM統合版）
         /// </summary>
         /// <param name="stream">出力先ストリーム</param>
-        /// <returns>glTF JSONデータ</returns>
+        /// <returns>glTF JSONデータ（デバッグ用）</returns>
         public string Export(Stream stream)
         {
-            var rootTransform = _gameObject.transform;
-            var translation = System.Numerics.Vector3.Zero;
-            var rotation = System.Numerics.Quaternion.Identity;
-            var scale = rootTransform.localScale.ToVector3();
-            var rootNode = new node.Node
+            using (var _ = new ScopedProfile("Export"))
             {
-                Name = new UnicodeString(AssetPathUtils.TrimCloneSuffix(rootTransform.name)),
-                Children = new List<ObjectID>(),
-                Translation = translation,
-                Rotation = rotation,
-                Scale = scale,
-            };
-            var nodes = _root.Nodes!;
-            var nodeID = new ObjectID((uint)nodes.Count);
-            _transformNodeIDs.Add(rootTransform, nodeID);
-            _transformNodeNames.Add(rootTransform.name);
-            nodes.Add(rootNode);
+                // エクスポート設定を作成
+                var settings = CreateExportSettings();
 
-            // TODO: コンポーネントからの設定読み込み
-            bool makeAllNodeNamesUnique = true;
+                // VRMメタ情報を取得
+                var meta = GetOrCreateVrmMeta();
 
-            using (var _ = new ScopedProfile(nameof(RetrieveAllTransforms)))
-            {
-                RetrieveAllTransforms(rootTransform, makeAllNodeNamesUnique);
-            }
-
-            using (var _ = new ScopedProfile(nameof(RetrieveAllNodes)))
-            {
-                RetrieveAllNodes(rootTransform);
-            }
-
-            // TODO: RetrieveAllMeshRenderers, ConvertAllMaterialVariants, ExportAllVrmExtensions
-
-            _root.Buffers!.Add(new buffer.Buffer
-            {
-                ByteLength = _exporter.Length,
-            });
-            _root.ExtensionsUsed = _extensionsUsed.ToList();
-            _root.Normalize();
-            var json = Document.SaveAsString(_root);
-            _exporter.Export(json, stream);
-            return json;
-        }
-
-        private void RetrieveAllTransforms(Transform parent, bool uniqueNodeName)
-        {
-            foreach (Transform child in parent)
-            {
-                if (!child.gameObject.activeInHierarchy)
+                byte[] bytes;
+                using (var arrayManager = new NativeArrayManager())
                 {
-                    continue;
-                }
-
-                var nodeName = AssetPathUtils.TrimCloneSuffix(child.name);
-                if (uniqueNodeName && _transformNodeNames.Contains(nodeName))
-                {
-                    var renamedNodeName = nodeName;
-                    var i = 1;
-                    while (_transformNodeNames.Contains(renamedNodeName))
+                    using (var __ = new ScopedProfile("ModelExporter.Export"))
                     {
-                        renamedNodeName = $"{nodeName}_{i}";
-                        i++;
-                    }
+                        // UnityヒエラルキーをVrmLib.Modelに変換
+                        var converter = new ModelExporter();
+                        var model = converter.Export(settings, arrayManager, _gameObject);
 
-                    nodeName = renamedNodeName;
+                        using (var ___ = new ScopedProfile("ConvertCoordinate"))
+                        {
+                            // 座標系変換（Unity左手系 → VRM右手系）
+                            model.ConvertCoordinate(Coordinates.Vrm1, ignoreVrm: false);
+                        }
+
+                        using (var ___ = new ScopedProfile("Vrm10Exporter.Export"))
+                        {
+                            // Material Exporterを作成
+                            var materialExporter = CreateMaterialExporter();
+                            var textureSerializer = new RuntimeTextureSerializer();
+
+                            // VRM 1.0エクスポート
+                            using (var exporter = new Vrm10Exporter(settings, materialExporter, textureSerializer))
+                            {
+                                exporter.Export(_gameObject, model, converter, new ExportArgs(), meta);
+
+                                // バイナリ出力
+                                bytes = exporter.Storage.ToGlbBytes();
+                            }
+                        }
+                    }
                 }
 
-                var translation = child.localPosition.ToVector3WithCoordinateSpace();
-                var rotation = child.localRotation.ToQuaternionWithCoordinateSpace();
-                var scale = child.localScale.ToVector3();
-                var node = new node.Node
-                {
-                    Name = new UnicodeString(nodeName),
-                    Children = new List<ObjectID>(),
-                    Translation = translation,
-                    Rotation = rotation,
-                    Scale = scale,
-                };
-                var nodes = _root.Nodes!;
-                var nodeID = new ObjectID((uint)nodes.Count);
-                nodes.Add(node);
-                _transformNodeIDs.Add(child, nodeID);
-                _transformNodeNames.Add(nodeName);
-                RetrieveAllTransforms(child, uniqueNodeName);
+                // ストリームに書き込み
+                stream.Write(bytes, 0, bytes.Length);
+
+                // デバッグ用にJSON文字列を返す（必要に応じて）
+                return "{}"; // TODO: 必要に応じてJSONを返す
             }
         }
 
-        private void RetrieveAllNodes(Transform parent)
+        /// <summary>
+        /// エクスポート設定を作成
+        /// </summary>
+        private GltfExportSettings CreateExportSettings()
         {
-            foreach (Transform child in parent)
+            var packageJsonFile = File.ReadAllText($"Packages/{PackageJson.Name}/package.json");
+            var packageJson = PackageJson.LoadFromString(packageJsonFile);
+
+            return new GltfExportSettings
             {
-                if (!child.gameObject.activeInHierarchy)
-                {
-                    continue;
-                }
+                // Generator情報を設定
+                // TODO: 他の設定が必要な場合はXRiftVrmDescriptorから取得
+            };
+        }
 
-                if (_transformNodeIDs.TryGetValue(parent, out var parentNodeID) &&
-                    _transformNodeIDs.TryGetValue(child, out var childNodeID))
-                {
-                    var parentNode = _root.Nodes![(int)parentNodeID.ID];
-                    parentNode.Children!.Add(childNodeID);
-                }
+        /// <summary>
+        /// Material Exporterを作成
+        /// </summary>
+        private IMaterialExporter CreateMaterialExporter()
+        {
+            // Material Variantがある場合はカスタム実装を使用
+            // TODO: Material Variant対応の実装
+            // if (_materialVariants.Count > 0)
+            // {
+            //     return new XRiftMaterialExporter(_materialVariants);
+            // }
 
-                RetrieveAllNodes(child);
+            // 標準はUniVRM10のデフォルトMToon Exporter
+            return Vrm10MaterialExporterUtility.GetValidVrm10MaterialExporter();
+        }
+
+        /// <summary>
+        /// VRMメタ情報を取得または作成
+        /// </summary>
+        private VRM10ObjectMeta GetOrCreateVrmMeta()
+        {
+            // XRiftVrmDescriptorから取得
+            var descriptor = _gameObject.GetComponent<XRiftVrmDescriptor>();
+            if (descriptor != null)
+            {
+                return descriptor.ToVrm10Meta();
             }
+
+            // デフォルトのメタ情報を作成
+            var meta = ScriptableObject.CreateInstance<VRM10ObjectMeta>();
+            meta.Name = _gameObject.name;
+            meta.Version = "0.0.0";
+            return meta;
         }
     }
 

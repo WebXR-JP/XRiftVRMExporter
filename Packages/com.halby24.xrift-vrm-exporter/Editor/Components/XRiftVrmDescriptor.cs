@@ -11,9 +11,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using nadena.dev.ndmf;
+using UniGLTF.Extensions.VRMC_vrm;
+using UniVRM10;
 using UnityEngine;
 using UnityEngine.Animations;
-using XRift.VrmExporter.Converters;
 using VrmCore = XRift.VrmExporter.VRM.Core;
 
 namespace XRift.VrmExporter.Components
@@ -154,6 +155,92 @@ namespace XRift.VrmExporter.Components
         public HashSet<Transform> GetExcludedConstraintTransforms()
         {
             return new HashSet<Transform>(excludedConstraintTransforms.Where(t => t != null));
+        }
+
+        /// <summary>
+        /// VRM10ObjectMetaに変換
+        /// </summary>
+        public VRM10ObjectMeta ToVrm10Meta()
+        {
+            var meta = ScriptableObject.CreateInstance<VRM10ObjectMeta>();
+
+            // 基本情報
+            meta.Name = gameObject.name;
+            meta.Version = version ?? "0.0.0";
+            meta.CopyrightInformation = copyrightInformation;
+            meta.ContactInformation = contactInformation;
+            meta.Authors = authors;
+            meta.References = references;
+            meta.ThirdPartyLicenses = thirdPartyLicenses;
+            meta.ThumbnailImage = thumbnail;
+
+            // ライセンス情報
+            meta.LicenseUrl = licenseUrl;
+            meta.OtherLicenseUrl = otherLicenseUrl;
+
+            // 使用許諾
+            meta.AvatarPermission = ConvertAvatarPermission(avatarPermission);
+            meta.CommercialUsage = ConvertCommercialUsage(commercialUsage);
+            meta.CreditNotation = ConvertCreditNotation(creditNotation);
+            meta.Modification = ConvertModification(modification);
+
+            // 使用制限
+            meta.AllowExcessivelyViolentUsage = ConvertUsagePermission(allowExcessivelyViolentUsage);
+            meta.AllowExcessivelySexualUsage = ConvertUsagePermission(allowExcessivelySexualUsage);
+            meta.AllowPoliticalOrReligiousUsage = ConvertUsagePermission(allowPoliticalOrReligiousUsage);
+            meta.AllowAntisocialOrHateUsage = ConvertUsagePermission(allowAntisocialOrHateUsage);
+            meta.AllowRedistribution = ConvertUsagePermission(allowRedistribution);
+
+            return meta;
+        }
+
+        // VrmCore -> UniVRM10 変換ヘルパー
+        private static AvatarPermissionType ConvertAvatarPermission(VrmCore.AvatarPermission permission)
+        {
+            return permission switch
+            {
+                VrmCore.AvatarPermission.OnlyAuthor => AvatarPermissionType.onlyAuthor,
+                VrmCore.AvatarPermission.ExplicitlyLicensedPerson => AvatarPermissionType.onlySeparatelyLicensedPerson,
+                VrmCore.AvatarPermission.Everyone => AvatarPermissionType.everyone,
+                _ => AvatarPermissionType.onlyAuthor
+            };
+        }
+
+        private static CommercialUsageType ConvertCommercialUsage(VrmCore.CommercialUsage usage)
+        {
+            return usage switch
+            {
+                VrmCore.CommercialUsage.PersonalNonProfit => CommercialUsageType.personalNonProfit,
+                VrmCore.CommercialUsage.PersonalProfit => CommercialUsageType.personalProfit,
+                VrmCore.CommercialUsage.Corporation => CommercialUsageType.corporation,
+                _ => CommercialUsageType.personalNonProfit
+            };
+        }
+
+        private static CreditNotationType ConvertCreditNotation(VrmCore.CreditNotation notation)
+        {
+            return notation switch
+            {
+                VrmCore.CreditNotation.Required => CreditNotationType.required,
+                VrmCore.CreditNotation.Unnecessary => CreditNotationType.unnecessary,
+                _ => CreditNotationType.required
+            };
+        }
+
+        private static ModificationType ConvertModification(VrmCore.Modification modification)
+        {
+            return modification switch
+            {
+                VrmCore.Modification.Prohibited => ModificationType.prohibited,
+                VrmCore.Modification.AllowModification => ModificationType.allowModification,
+                VrmCore.Modification.AllowModificationRedistribution => ModificationType.allowModificationRedistribution,
+                _ => ModificationType.prohibited
+            };
+        }
+
+        private static bool ConvertUsagePermission(VrmUsagePermission permission)
+        {
+            return permission == VrmUsagePermission.Allow;
         }
 
         // ReSharper disable once Unity.RedundantEventFunction
