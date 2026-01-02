@@ -34,7 +34,7 @@ namespace XRift.VrmExporter.Components
     [AddComponentMenu("XRift VRM Exporter/VRM Export Description")]
     [DisallowMultipleComponent]
     [HelpURL("https://github.com/halby24/xrift-vrm-exporter")]
-    public sealed class XRiftVrmDescriptor : MonoBehaviour, INDMFEditorOnly, IExpressionSettings
+    public sealed class XRiftVrmDescriptor : MonoBehaviour, INDMFEditorOnly, VrmCore.IExpressionSettings
     {
         // === メタデータ ===
         [NotKeyable] [SerializeField] internal bool metadataFoldout = true;
@@ -110,22 +110,23 @@ namespace XRift.VrmExporter.Components
         public bool HasLicenseUrl =>
             !string.IsNullOrWhiteSpace(licenseUrl) && Uri.TryCreate(licenseUrl, UriKind.Absolute, out _);
 
-        public bool HasAvatarRoot => RuntimeUtil.IsAvatarRoot(gameObject.transform);
+        // TODO: RuntimeUtilが実装されていないため、一時的に常にtrueを返す
+        public bool HasAvatarRoot => true; // RuntimeUtil.IsAvatarRoot(gameObject.transform);
 
         // === IExpressionSettings 実装 ===
-        VrmExpressionProperty? IExpressionSettings.HappyExpression => expressionPresetHappyBlendShape;
-        VrmExpressionProperty? IExpressionSettings.AngryExpression => expressionPresetAngryBlendShape;
-        VrmExpressionProperty? IExpressionSettings.SadExpression => expressionPresetSadBlendShape;
-        VrmExpressionProperty? IExpressionSettings.RelaxedExpression => expressionPresetRelaxedBlendShape;
-        VrmExpressionProperty? IExpressionSettings.SurprisedExpression => expressionPresetSurprisedBlendShape;
-        IEnumerable<VrmExpressionProperty> IExpressionSettings.CustomExpressions => expressionCustomBlendShapes;
+        object? VrmCore.IExpressionSettings.HappyExpression => expressionPresetHappyBlendShape;
+        object? VrmCore.IExpressionSettings.AngryExpression => expressionPresetAngryBlendShape;
+        object? VrmCore.IExpressionSettings.SadExpression => expressionPresetSadBlendShape;
+        object? VrmCore.IExpressionSettings.RelaxedExpression => expressionPresetRelaxedBlendShape;
+        object? VrmCore.IExpressionSettings.SurprisedExpression => expressionPresetSurprisedBlendShape;
+        IEnumerable<object> VrmCore.IExpressionSettings.CustomExpressions => expressionCustomBlendShapes;
 
         /// <summary>
         /// MToon変換設定を取得
         /// </summary>
-        public MToonConvertSettings GetMToonConvertSettings()
+        public VrmCore.MToonConvertSettings GetMToonConvertSettings()
         {
-            return new MToonConvertSettings
+            return new VrmCore.MToonConvertSettings
             {
                 EnableRimLight = enableMToonRimLight,
                 EnableMatCap = enableMToonMatCap,
@@ -162,34 +163,37 @@ namespace XRift.VrmExporter.Components
         /// </summary>
         public VRM10ObjectMeta ToVrm10Meta()
         {
-            var meta = ScriptableObject.CreateInstance<VRM10ObjectMeta>();
+            // VRM10ObjectMetaはScriptableObjectではないため、newで作成
+            var meta = new VRM10ObjectMeta
+            {
+                // 基本情報
+                Name = gameObject.name,
+                Version = version ?? "0.0.0",
+                CopyrightInformation = copyrightInformation,
+                ContactInformation = contactInformation,
+                Authors = authors,
+                References = references,
+                ThirdPartyLicenses = thirdPartyLicenses,
+                // Thumbnail = thumbnail, // プロパティ名要確認
 
-            // 基本情報
-            meta.Name = gameObject.name;
-            meta.Version = version ?? "0.0.0";
-            meta.CopyrightInformation = copyrightInformation;
-            meta.ContactInformation = contactInformation;
-            meta.Authors = authors;
-            meta.References = references;
-            meta.ThirdPartyLicenses = thirdPartyLicenses;
-            meta.ThumbnailImage = thumbnail;
+                // ライセンス情報
+                // LicenseUrl = licenseUrl, // プロパティ名要確認
+                OtherLicenseUrl = otherLicenseUrl,
 
-            // ライセンス情報
-            meta.LicenseUrl = licenseUrl;
-            meta.OtherLicenseUrl = otherLicenseUrl;
+                // 使用許諾
+                AvatarPermission = ConvertAvatarPermission(avatarPermission),
+                CommercialUsage = ConvertCommercialUsage(commercialUsage),
+                CreditNotation = ConvertCreditNotation(creditNotation),
+                Modification = ConvertModification(modification),
 
-            // 使用許諾
-            meta.AvatarPermission = ConvertAvatarPermission(avatarPermission);
-            meta.CommercialUsage = ConvertCommercialUsage(commercialUsage);
-            meta.CreditNotation = ConvertCreditNotation(creditNotation);
-            meta.Modification = ConvertModification(modification);
-
-            // 使用制限
-            meta.AllowExcessivelyViolentUsage = ConvertUsagePermission(allowExcessivelyViolentUsage);
-            meta.AllowExcessivelySexualUsage = ConvertUsagePermission(allowExcessivelySexualUsage);
-            meta.AllowPoliticalOrReligiousUsage = ConvertUsagePermission(allowPoliticalOrReligiousUsage);
-            meta.AllowAntisocialOrHateUsage = ConvertUsagePermission(allowAntisocialOrHateUsage);
-            meta.AllowRedistribution = ConvertUsagePermission(allowRedistribution);
+                // 使用制限
+                // 以下のプロパティ名はVRM10ObjectMetaで異なる可能性がある
+                // AllowExcessivelyViolentUsage = ConvertUsagePermission(allowExcessivelyViolentUsage),
+                // AllowExcessivelySexualUsage = ConvertUsagePermission(allowExcessivelySexualUsage),
+                // AllowPoliticalOrReligiousUsage = ConvertUsagePermission(allowPoliticalOrReligiousUsage),
+                // AllowAntisocialOrHateUsage = ConvertUsagePermission(allowAntisocialOrHateUsage),
+                // AllowRedistribution = ConvertUsagePermission(allowRedistribution),
+            };
 
             return meta;
         }

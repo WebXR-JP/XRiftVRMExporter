@@ -9,7 +9,6 @@
 
 using System;
 using UnityEngine;
-using XRift.VrmExporter.VRM.Gltf;
 
 namespace XRift.VrmExporter.Utils
 {
@@ -92,6 +91,9 @@ namespace XRift.VrmExporter.Utils
             return Matrix4x4.TRS(t, r, s).ToMatrix4();
         }
 
+        // NOTE: material.TextureFilterMode and material.TextureWrapMode are not available in UniVRM v0.131.0
+        // These methods are commented out until we find the correct replacement types
+        /*
         public static material.TextureFilterMode ToTextureFilterMode(this FilterMode self)
         {
             return self switch
@@ -113,6 +115,7 @@ namespace XRift.VrmExporter.Utils
                 _ => throw new ArgumentOutOfRangeException(),
             };
         }
+        */
 
         internal static Texture2D Blit(this Texture sourceTexture, TextureFormat textureFormat, ColorSpace cs,
             Material? material = null)

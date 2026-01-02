@@ -16,8 +16,8 @@ namespace XRift.VrmExporter.Utils
     /// </summary>
     internal sealed class MaterialVariantMapping
     {
-        public Renderer Renderer { get; init; } = null!;
-        public Material[] Materials { get; init; } = { };
+        public Renderer Renderer { get; set; } = null!;
+        public Material[] Materials { get; set; } = { };
     }
 
     /// <summary>
@@ -25,7 +25,7 @@ namespace XRift.VrmExporter.Utils
     /// </summary>
     internal sealed class MaterialVariant
     {
-        public string? Name { get; init; }
-        public MaterialVariantMapping[] Mappings { get; init; } = { };
+        public string? Name { get; set; }
+        public MaterialVariantMapping[] Mappings { get; set; } = { };
     }
 }

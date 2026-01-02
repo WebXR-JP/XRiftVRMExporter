@@ -17,7 +17,6 @@ using UniGLTF;
 using UniVRM10;
 using UnityEditor;
 using UnityEngine;
-using VrmLib;
 using XRift.VrmExporter.Components;
 using XRift.VrmExporter.Utils;
 using Debug = UnityEngine.Debug;
@@ -107,7 +106,20 @@ namespace XRift.VrmExporter.Core
                 // VRMメタ情報を取得
                 var meta = GetOrCreateVrmMeta();
 
+                // TODO: UniVRM v0.131.0用の実装に変更する必要がある
+                // 以下は一時的なプレースホルダー実装
                 byte[] bytes;
+                using (var __ = new ScopedProfile("Vrm10Exporter.Export"))
+                {
+                    // UniVRM10を使用した直接エクスポート
+                    // 注: この実装は不完全で、実際のエクスポート処理を実装する必要があります
+                    var materialExporter = CreateMaterialExporter();
+                    var textureSerializer = new RuntimeTextureSerializer();
+                    // Vrm10Exporter.Exportの正しい引数順序: settings, gameObject, materialExporter, textureSerializer, meta
+                    bytes = Vrm10Exporter.Export(settings, _gameObject, materialExporter, textureSerializer, meta);
+                }
+
+                /* 古いVrmLib実装（UniVRM v0.131.0では動作しない）
                 using (var arrayManager = new NativeArrayManager())
                 {
                     using (var __ = new ScopedProfile("ModelExporter.Export"))
@@ -139,6 +151,7 @@ namespace XRift.VrmExporter.Core
                         }
                     }
                 }
+                */
 
                 // ストリームに書き込み
                 stream.Write(bytes, 0, bytes.Length);
@@ -192,9 +205,12 @@ namespace XRift.VrmExporter.Core
             }
 
             // デフォルトのメタ情報を作成
-            var meta = ScriptableObject.CreateInstance<VRM10ObjectMeta>();
-            meta.Name = _gameObject.name;
-            meta.Version = "0.0.0";
+            // VRM10ObjectMetaはScriptableObjectではないため、newで作成
+            var meta = new VRM10ObjectMeta
+            {
+                Name = _gameObject.name,
+                Version = "0.0.0"
+            };
             return meta;
         }
     }
