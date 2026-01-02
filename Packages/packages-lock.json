@@ -28,6 +28,15 @@
       "dependencies": {},
       "hash": "6b47ce08d0f284a85ef564af8c100dd920c65795"
     },
+    "com.coplaydev.unity-mcp": {
+      "version": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.0.2"
+      },
+      "hash": "c2a6b0ac7a74f65d38326f304c616757fa4f6c36"
+    },
     "com.github.hkrn.ndmf-vrm-exporter": {
       "version": "file:com.github.hkrn.ndmf-vrm-exporter",
       "depth": 0,
