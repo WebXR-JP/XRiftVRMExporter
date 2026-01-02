@@ -35,6 +35,9 @@
     },
     "jp.lilxyzw.liltoon": {
       "version": "2.3.2"
+    },
+    "com.vrmc.univrm": {
+      "version": "0.128.1"
     }
   },
   "locked": {
@@ -121,6 +124,16 @@
     },
     "com.anatawa12.custom-localization-for-editor-extension": {
       "version": "1.2.1",
+      "dependencies": {}
+    },
+    "com.vrmc.univrm": {
+      "version": "0.128.1",
+      "dependencies": {
+        "com.vrmc.gltf": "0.128.1"
+      }
+    },
+    "com.vrmc.gltf": {
+      "version": "0.128.1",
       "dependencies": {}
     }
   }
