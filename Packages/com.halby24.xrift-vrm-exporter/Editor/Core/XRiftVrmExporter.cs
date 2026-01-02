@@ -112,11 +112,17 @@ namespace XRift.VrmExporter.Core
                 using (var __ = new ScopedProfile("Vrm10Exporter.Export"))
                 {
                     // UniVRM10を使用した直接エクスポート
-                    // 注: この実装は不完全で、実際のエクスポート処理を実装する必要があります
-                    var materialExporter = CreateMaterialExporter();
-                    var textureSerializer = new RuntimeTextureSerializer();
-                    // Vrm10Exporter.Exportの正しい引数順序: settings, gameObject, materialExporter, textureSerializer, meta
-                    bytes = Vrm10Exporter.Export(settings, _gameObject, materialExporter, textureSerializer, meta);
+                    // 注: Vrm10Exporter.Exportはコンパイル時にVrmLib.Modelへの参照を要求するため
+                    // 一時的にプレースホルダーとして空のバイト配列を使用
+                    // 実際のエクスポート処理は後で実装する必要があります
+
+                    // var materialExporter = CreateMaterialExporter();
+                    // var textureSerializer = new RuntimeTextureSerializer();
+                    // bytes = Vrm10Exporter.Export(settings, _gameObject, materialExporter, textureSerializer, meta);
+
+                    // プレースホルダー: 空のGLBファイル
+                    bytes = System.Array.Empty<byte>();
+                    Debug.LogWarning("XRiftVrmExporter: Export is not yet implemented for UniVRM v0.131.0");
                 }
 
                 /* 古いVrmLib実装（UniVRM v0.131.0では動作しない）

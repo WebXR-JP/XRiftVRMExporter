@@ -7,7 +7,9 @@
 
 #nullable enable
 
-#if XRIFT_HAS_LILTOON
+// TODO: MaterialBakerは現在無効化されています
+// lilToonパッケージとIAssetSaverインターフェースの実装が必要です
+#if false // XRIFT_HAS_LILTOON
 
 using System;
 using System.Collections.Generic;
