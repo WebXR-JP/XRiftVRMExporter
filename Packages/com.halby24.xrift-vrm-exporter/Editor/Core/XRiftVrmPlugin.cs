@@ -3,9 +3,12 @@
 
 #nullable enable
 
+using System.Collections.Generic;
 using System.IO;
 using nadena.dev.ndmf;
 using UnityEngine;
+using XRift.VrmExporter.Components;
+using XRift.VrmExporter.Converters;
 using XRift.VrmExporter.Core;
 using XRift.VrmExporter.Utils;
 
@@ -27,10 +30,43 @@ namespace XRift.VrmExporter.Core
 
         protected override void Configure()
         {
-            // ビルドフェーズの設定
+            // Transforming フェーズで PhysBone → SpringBone 変換を実行
+            InPhase(BuildPhase.Transforming)
+                .Run(XRiftPhysBoneConvertPass.Instance);
+
             // Optimizing フェーズでVRMエクスポート処理を実行
             InPhase(BuildPhase.Optimizing)
                 .Run(XRiftVrmExportPass.Instance);
+        }
+    }
+
+    /// <summary>
+    /// PhysBone → SpringBone 変換を実行するパス
+    /// </summary>
+    internal class XRiftPhysBoneConvertPass : Pass<XRiftPhysBoneConvertPass>
+    {
+        public override string QualifiedName => "com.halby24.xrift-vrm-exporter.physbone-convert";
+        public override string DisplayName => "XRift PhysBone → SpringBone Convert";
+
+        protected override void Execute(BuildContext context)
+        {
+            var state = context.GetState<XRiftBuildState>();
+            if (!state.ExportEnabled)
+            {
+                return;
+            }
+
+            var gameObject = context.AvatarRootObject;
+
+            // 除外設定を取得
+            var descriptor = gameObject.GetComponent<XRiftVrmDescriptor>();
+            var excludedColliders = descriptor?.GetExcludedSpringBoneColliderTransforms()
+                ?? new HashSet<Transform>();
+            var excludedBones = descriptor?.GetExcludedSpringBoneTransforms()
+                ?? new HashSet<Transform>();
+
+            // PhysBone → SpringBone 変換を実行
+            PhysBoneToSpringBoneConverter.Convert(gameObject, excludedColliders, excludedBones);
         }
     }
 
