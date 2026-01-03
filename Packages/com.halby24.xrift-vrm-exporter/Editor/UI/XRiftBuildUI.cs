@@ -21,10 +21,10 @@ namespace XRift.VrmExporter.UI
     internal class XRiftBuildUI : BuildUIElement
     {
         private GameObject? _avatarRoot;
+        private TextField? _outputPathField;
+        private Button? _browseButton;
         private Button? _buildButton;
-        private Button? _saveAsButton;
         private Label? _statusLabel;
-        private byte[]? _lastExportedVrmData;
 
         public override GameObject AvatarRoot
         {
@@ -63,36 +63,44 @@ namespace XRift.VrmExporter.UI
             _statusLabel.style.marginBottom = 8;
             container.Add(_statusLabel);
 
-            // ボタンコンテナ
-            var buttonContainer = new VisualElement();
-            buttonContainer.style.flexDirection = FlexDirection.Row;
+            // 出力パスコンテナ
+            var pathContainer = new VisualElement();
+            pathContainer.style.flexDirection = FlexDirection.Row;
+            pathContainer.style.marginBottom = 8;
+
+            // 出力パステキストフィールド
+            _outputPathField = new TextField("出力先");
+            _outputPathField.style.flexGrow = 1;
+            _outputPathField.value = "";
+            pathContainer.Add(_outputPathField);
+
+            // 参照ボタン
+            _browseButton = new Button(OnBrowseClicked)
+            {
+                text = "..."
+            };
+            _browseButton.style.width = 30;
+            _browseButton.style.marginLeft = 4;
+            pathContainer.Add(_browseButton);
+
+            container.Add(pathContainer);
 
             // ビルドボタン
             _buildButton = new Button(OnBuildClicked)
             {
                 text = "Build VRM"
             };
-            _buildButton.style.flexGrow = 1;
             _buildButton.SetEnabled(false);
-            buttonContainer.Add(_buildButton);
+            container.Add(_buildButton);
 
-            // 名前を付けて保存ボタン
-            _saveAsButton = new Button(OnSaveAsClicked)
-            {
-                text = "Save As..."
-            };
-            _saveAsButton.style.marginLeft = 4;
-            _saveAsButton.SetEnabled(false);
-            buttonContainer.Add(_saveAsButton);
-
-            container.Add(buttonContainer);
             Add(container);
         }
 
         private void UpdateButtonState()
         {
             var hasAvatar = _avatarRoot != null;
-            _buildButton?.SetEnabled(hasAvatar);
+            var hasPath = !string.IsNullOrEmpty(_outputPathField?.value);
+            _buildButton?.SetEnabled(hasAvatar && hasPath);
 
             if (_statusLabel != null)
             {
@@ -100,11 +108,21 @@ namespace XRift.VrmExporter.UI
                     ? $"選択中: {_avatarRoot!.name}"
                     : "アバターを選択してください";
             }
+        }
 
-            // VRMデータがない場合はSave Asを無効化
-            if (_lastExportedVrmData == null)
+        private void OnBrowseClicked()
+        {
+            var defaultName = _avatarRoot != null ? _avatarRoot.name + ".vrm" : "avatar.vrm";
+            var path = EditorUtility.SaveFilePanel(
+                "VRM保存先を選択",
+                "",
+                defaultName,
+                "vrm");
+
+            if (!string.IsNullOrEmpty(path))
             {
-                _saveAsButton?.SetEnabled(false);
+                _outputPathField!.value = path;
+                UpdateButtonState();
             }
         }
 
@@ -112,10 +130,15 @@ namespace XRift.VrmExporter.UI
         {
             if (_avatarRoot == null) return;
 
+            var outputPath = _outputPathField?.value;
+            if (string.IsNullOrEmpty(outputPath))
+            {
+                _statusLabel!.text = "出力先を指定してください";
+                return;
+            }
+
             Debug.Log($"[XRift VRM] Building VRM for: {_avatarRoot.name}");
             _statusLabel!.text = "ビルド中...";
-            _lastExportedVrmData = null;
-            _saveAsButton?.SetEnabled(false);
 
             // クローンを作成してビルド
             GameObject? clone = null;
@@ -131,9 +154,17 @@ namespace XRift.VrmExporter.UI
                 var state = buildContext.GetState<XRiftBuildState>();
                 if (state.ExportedVrmData != null && state.ExportedVrmData.Length > 0)
                 {
-                    _lastExportedVrmData = state.ExportedVrmData;
-                    _statusLabel.text = $"ビルド完了 ({_lastExportedVrmData.Length / 1024} KB)";
-                    _saveAsButton?.SetEnabled(true);
+                    File.WriteAllBytes(outputPath, state.ExportedVrmData);
+                    Debug.Log($"[XRift VRM] Saved VRM to: {outputPath}");
+                    _statusLabel.text = $"保存完了: {Path.GetFileName(outputPath)} ({state.ExportedVrmData.Length / 1024} KB)";
+
+                    // Assetsフォルダ内の場合はReimport
+                    var normalizedPath = outputPath!.Replace("\\", "/");
+                    if (normalizedPath.Contains("/Assets/"))
+                    {
+                        var relativePath = "Assets" + normalizedPath.Split(new[] { "/Assets" }, System.StringSplitOptions.None)[1];
+                        AssetDatabase.ImportAsset(relativePath, ImportAssetOptions.ForceUpdate);
+                    }
                 }
                 else
                 {
@@ -150,36 +181,6 @@ namespace XRift.VrmExporter.UI
                 if (clone != null)
                 {
                     Object.DestroyImmediate(clone);
-                }
-            }
-        }
-
-        private void OnSaveAsClicked()
-        {
-            if (_lastExportedVrmData == null || _lastExportedVrmData.Length == 0)
-            {
-                _statusLabel!.text = "保存するVRMデータがありません";
-                return;
-            }
-
-            var path = EditorUtility.SaveFilePanel(
-                "Save VRM",
-                "",
-                _avatarRoot?.name + ".vrm",
-                "vrm");
-
-            if (!string.IsNullOrEmpty(path))
-            {
-                try
-                {
-                    File.WriteAllBytes(path, _lastExportedVrmData);
-                    Debug.Log($"[XRift VRM] Saved VRM to: {path}");
-                    _statusLabel!.text = $"保存完了: {Path.GetFileName(path)}";
-                }
-                catch (System.Exception e)
-                {
-                    Debug.LogException(e);
-                    _statusLabel!.text = $"保存エラー: {e.Message}";
                 }
             }
         }
