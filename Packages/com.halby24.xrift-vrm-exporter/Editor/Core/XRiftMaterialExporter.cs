@@ -461,6 +461,17 @@ namespace XRift.VrmExporter.Core
                 return;
             }
 
+            // MToonにはMatcapMask機能がないため、lilToonでマスクが設定されている場合はMatcap自体をスキップ
+            if (src.HasProperty("_MatCapBlendMask"))
+            {
+                var matcapMask = src.GetTexture("_MatCapBlendMask");
+                if (matcapMask != null)
+                {
+                    mtoon.MatcapFactor = new[] { 0f, 0f, 0f };
+                    return;
+                }
+            }
+
             // MatCapテクスチャ
             if (src.HasProperty("_MatCapTex"))
             {
