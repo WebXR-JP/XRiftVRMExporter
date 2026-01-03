@@ -8,7 +8,8 @@
         "UniGLTF",
         "VRM10",
         "VRMShaders",
-        "VrmLib"
+        "VrmLib",
+        "lilToon.Editor"
     ],
     "includePlatforms": [
         "Editor"
