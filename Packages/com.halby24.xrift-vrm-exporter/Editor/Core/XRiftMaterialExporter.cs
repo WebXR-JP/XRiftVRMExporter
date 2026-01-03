@@ -135,6 +135,13 @@ namespace XRift.VrmExporter.Core
             // === アウトライン ===
             ExportOutline(src, textureExporter, mtoon);
 
+            // === TransparentWithZWrite ===
+            // Transparent + Outlineの場合、ZWriteを有効にして描画順の問題を回避
+            if (dst.alphaMode == "BLEND" && mtoon.OutlineWidthMode != MToonExtension.OutlineWidthMode.none)
+            {
+                mtoon.TransparentWithZWrite = true;
+            }
+
             // === GI ===
             mtoon.GiEqualizationFactor = 0.9f;
 
@@ -563,6 +570,20 @@ namespace XRift.VrmExporter.Core
 
         private string GetAlphaMode(Material src)
         {
+#if XRIFT_HAS_LILTOON
+            // シェーダー名から判定（より確実）
+            var shaderName = src.shader.name;
+            if (lilShaderUtils.IsCutoutShaderName(shaderName))
+            {
+                return "MASK";
+            }
+            if (lilShaderUtils.IsTransparentShaderName(shaderName))
+            {
+                return "BLEND";
+            }
+#endif
+
+            // プロパティからのフォールバック判定
             if (!src.HasProperty("_TransparentMode"))
             {
                 return "OPAQUE";
