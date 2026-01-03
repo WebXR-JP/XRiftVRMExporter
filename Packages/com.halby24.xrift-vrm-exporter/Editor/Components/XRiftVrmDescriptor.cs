@@ -104,7 +104,17 @@ namespace XRift.VrmExporter.Components
         [NotKeyable] [SerializeField] internal bool extensionFoldout;
         [NotKeyable] [SerializeField] internal bool enableKhrMaterialsVariants = true;
 
+        // === エクスポート設定 ===
+        [NotKeyable] [SerializeField] internal bool exportFoldout;
+        [NotKeyable] [SerializeField] internal string outputPath = "";
+
         // === プロパティ ===
+        public string OutputPath
+        {
+            get => outputPath;
+            set => outputPath = value;
+        }
+
         public bool HasAuthor => authors.Count > 0 && !string.IsNullOrWhiteSpace(authors.First());
 
         public bool HasLicenseUrl =>

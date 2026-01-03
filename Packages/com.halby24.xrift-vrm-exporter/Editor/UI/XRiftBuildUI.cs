@@ -10,6 +10,8 @@ using nadena.dev.ndmf.platform;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEditor.SceneManagement;
+using XRift.VrmExporter.Components;
 using XRift.VrmExporter.Core;
 
 namespace XRift.VrmExporter.UI
@@ -32,6 +34,7 @@ namespace XRift.VrmExporter.UI
             set
             {
                 _avatarRoot = value;
+                LoadOutputPathFromDescriptor();
                 UpdateButtonState();
             }
         }
@@ -96,6 +99,33 @@ namespace XRift.VrmExporter.UI
             Add(container);
         }
 
+        private void LoadOutputPathFromDescriptor()
+        {
+            if (_avatarRoot == null || _outputPathField == null) return;
+
+            var descriptor = _avatarRoot.GetComponent<XRiftVrmDescriptor>();
+            if (descriptor != null && !string.IsNullOrEmpty(descriptor.OutputPath))
+            {
+                _outputPathField.value = descriptor.OutputPath;
+            }
+        }
+
+        private void SaveOutputPathToDescriptor(string path)
+        {
+            if (_avatarRoot == null) return;
+
+            var descriptor = _avatarRoot.GetComponent<XRiftVrmDescriptor>();
+            if (descriptor == null)
+            {
+                descriptor = Undo.AddComponent<XRiftVrmDescriptor>(_avatarRoot);
+            }
+
+            Undo.RecordObject(descriptor, "Set VRM Output Path");
+            descriptor.OutputPath = path;
+            EditorUtility.SetDirty(descriptor);
+            EditorSceneManager.MarkSceneDirty(_avatarRoot.scene);
+        }
+
         private void UpdateButtonState()
         {
             var hasAvatar = _avatarRoot != null;
@@ -122,6 +152,7 @@ namespace XRift.VrmExporter.UI
             if (!string.IsNullOrEmpty(path))
             {
                 _outputPathField!.value = path;
+                SaveOutputPathToDescriptor(path);
                 UpdateButtonState();
             }
         }
