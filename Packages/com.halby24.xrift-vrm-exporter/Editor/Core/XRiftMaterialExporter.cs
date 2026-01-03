@@ -49,6 +49,28 @@ namespace XRift.VrmExporter.Core
     {
         private const string LilToonShaderName = "lilToon";
 
+#if XRIFT_HAS_LILTOON
+        private readonly LilToonTextureBaker _textureBaker = new();
+#endif
+
+        // ベイクされたテクスチャを一時保持（エクスポート完了後に破棄）
+        private readonly System.Collections.Generic.List<Texture2D> _bakedTextures = new();
+
+        /// <summary>
+        /// 一時的にベイクしたテクスチャをすべて破棄
+        /// </summary>
+        public void Cleanup()
+        {
+            foreach (var tex in _bakedTextures)
+            {
+                if (tex != null)
+                {
+                    Object.DestroyImmediate(tex);
+                }
+            }
+            _bakedTextures.Clear();
+        }
+
         public bool TryExportMaterial(Material src, ITextureExporter textureExporter, out glTFMaterial dst)
         {
             // lilToonシェーダーでない場合は変換しない
@@ -78,7 +100,8 @@ namespace XRift.VrmExporter.Core
             dst.pbrMetallicRoughness = new glTFPbrMetallicRoughness();
 
             // === ベースカラー ===
-            ExportBaseColor(src, textureExporter, dst, mtoon);
+            // ベイクされたメインテクスチャを取得（シャドウのベイクに使用）
+            ExportBaseColor(src, textureExporter, dst, mtoon, out var bakedMainTex);
 
             // === アルファモード ===
             dst.alphaMode = GetAlphaMode(src);
@@ -95,7 +118,7 @@ namespace XRift.VrmExporter.Core
             }
 
             // === シャドウ（影） ===
-            ExportShadow(src, textureExporter, dst, mtoon);
+            ExportShadow(src, textureExporter, dst, mtoon, bakedMainTex);
 
             // === 法線マップ ===
             ExportNormalMap(src, textureExporter, dst);
@@ -123,10 +146,13 @@ namespace XRift.VrmExporter.Core
 
         /// <summary>
         /// ベースカラーとテクスチャをエクスポート
+        /// lilToonのテクスチャベイク処理で2nd/3rdレイヤー、HSVG調整等を合成
         /// </summary>
         private void ExportBaseColor(Material src, ITextureExporter textureExporter,
-            glTFMaterial dst, MToonExtension.VRMC_materials_mtoon mtoon)
+            glTFMaterial dst, MToonExtension.VRMC_materials_mtoon mtoon, out Texture? bakedMainTex)
         {
+            bakedMainTex = null;
+
             // ベースカラー
             if (src.HasProperty("_Color"))
             {
@@ -147,8 +173,24 @@ namespace XRift.VrmExporter.Core
                 var mainTex = src.GetTexture("_MainTex");
                 if (mainTex != null)
                 {
+                    Texture textureToExport = mainTex;
+
+#if XRIFT_HAS_LILTOON
+                    // ベイクが必要な場合はベイクしたテクスチャを使用
+                    if (_textureBaker.IsAvailable)
+                    {
+                        var bakedTex = _textureBaker.BakeMainTexture(src);
+                        if (bakedTex != null)
+                        {
+                            _bakedTextures.Add(bakedTex);
+                            textureToExport = bakedTex;
+                            bakedMainTex = bakedTex;
+                        }
+                    }
+#endif
+
                     var needsAlpha = GetAlphaMode(src) != "OPAQUE";
-                    var textureIndex = textureExporter.RegisterExportingAsSRgb(mainTex, needsAlpha);
+                    var textureIndex = textureExporter.RegisterExportingAsSRgb(textureToExport, needsAlpha);
                     if (textureIndex != -1)
                     {
                         dst.pbrMetallicRoughness.baseColorTexture = new glTFMaterialBaseColorTextureInfo
@@ -165,7 +207,7 @@ namespace XRift.VrmExporter.Core
         /// lilToon公式の変換ロジックをベースに実装
         /// </summary>
         private void ExportShadow(Material src, ITextureExporter textureExporter,
-            glTFMaterial dst, MToonExtension.VRMC_materials_mtoon mtoon)
+            glTFMaterial dst, MToonExtension.VRMC_materials_mtoon mtoon, Texture? bakedMainTex)
         {
             // _UseShadow が有効かチェック
             var useShadow = src.HasProperty("_UseShadow") && src.GetFloat("_UseShadow") == 1.0f;
@@ -217,19 +259,36 @@ namespace XRift.VrmExporter.Core
                 }
 
                 // シャドウテクスチャ
-                if (src.HasProperty("_ShadowColorTex"))
+                Texture? shadowTexToExport = null;
+
+#if XRIFT_HAS_LILTOON
+                // ベイクが必要な場合はベイクしたテクスチャを使用
+                if (_textureBaker.IsAvailable)
                 {
-                    var shadowTex = src.GetTexture("_ShadowColorTex");
-                    if (shadowTex != null)
+                    var bakedShadowTex = _textureBaker.BakeShadowTexture(src, bakedMainTex);
+                    if (bakedShadowTex != null)
                     {
-                        var textureIndex = textureExporter.RegisterExportingAsSRgb(shadowTex, needsAlpha: false);
-                        if (textureIndex != -1)
+                        _bakedTextures.Add(bakedShadowTex);
+                        shadowTexToExport = bakedShadowTex;
+                    }
+                }
+#endif
+
+                // ベイクされなかった場合は元のシャドウテクスチャを使用
+                if (shadowTexToExport == null && src.HasProperty("_ShadowColorTex"))
+                {
+                    shadowTexToExport = src.GetTexture("_ShadowColorTex");
+                }
+
+                if (shadowTexToExport != null)
+                {
+                    var textureIndex = textureExporter.RegisterExportingAsSRgb(shadowTexToExport, needsAlpha: false);
+                    if (textureIndex != -1)
+                    {
+                        mtoon.ShadeMultiplyTexture = new MToonExtension.TextureInfo
                         {
-                            mtoon.ShadeMultiplyTexture = new MToonExtension.TextureInfo
-                            {
-                                Index = textureIndex
-                            };
-                        }
+                            Index = textureIndex
+                        };
                     }
                 }
             }
@@ -347,6 +406,7 @@ namespace XRift.VrmExporter.Core
 
         /// <summary>
         /// MatCapをエクスポート
+        /// lilToonのMatCapカラーをテクスチャにベイクして出力
         /// </summary>
         private void ExportMatCap(Material src, ITextureExporter textureExporter,
             MToonExtension.VRMC_materials_mtoon mtoon)
@@ -371,7 +431,22 @@ namespace XRift.VrmExporter.Core
                 var matcapTex = src.GetTexture("_MatCapTex");
                 if (matcapTex != null)
                 {
-                    var textureIndex = textureExporter.RegisterExportingAsSRgb(matcapTex, needsAlpha: false);
+                    Texture textureToExport = matcapTex;
+
+#if XRIFT_HAS_LILTOON
+                    // MatCapカラーをテクスチャにベイク
+                    if (_textureBaker.IsAvailable)
+                    {
+                        var bakedMatcapTex = _textureBaker.BakeMatCapTexture(src);
+                        if (bakedMatcapTex != null)
+                        {
+                            _bakedTextures.Add(bakedMatcapTex);
+                            textureToExport = bakedMatcapTex;
+                        }
+                    }
+#endif
+
+                    var textureIndex = textureExporter.RegisterExportingAsSRgb(textureToExport, needsAlpha: false);
                     if (textureIndex != -1)
                     {
                         mtoon.MatcapTexture = new MToonExtension.TextureInfo
@@ -382,7 +457,11 @@ namespace XRift.VrmExporter.Core
                 }
             }
 
-            // MatCapカラー
+            // ベイク済みの場合はファクターは白、そうでなければMatCapカラーを設定
+#if XRIFT_HAS_LILTOON
+            // ベイク時はカラーがテクスチャに含まれるので白
+            mtoon.MatcapFactor = new[] { 1f, 1f, 1f };
+#else
             if (src.HasProperty("_MatCapColor"))
             {
                 var matcapColor = src.GetColor("_MatCapColor");
@@ -397,6 +476,7 @@ namespace XRift.VrmExporter.Core
             {
                 mtoon.MatcapFactor = new[] { 1f, 1f, 1f };
             }
+#endif
         }
 
         /// <summary>
