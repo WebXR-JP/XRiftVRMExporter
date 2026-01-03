@@ -106,26 +106,7 @@ namespace XRift.VrmExporter.Core
                 // VRMメタ情報を取得
                 var meta = GetOrCreateVrmMeta();
 
-                // TODO: UniVRM v0.131.0用の実装に変更する必要がある
-                // 以下は一時的なプレースホルダー実装
                 byte[] bytes;
-                using (var __ = new ScopedProfile("Vrm10Exporter.Export"))
-                {
-                    // UniVRM10を使用した直接エクスポート
-                    // 注: Vrm10Exporter.Exportはコンパイル時にVrmLib.Modelへの参照を要求するため
-                    // 一時的にプレースホルダーとして空のバイト配列を使用
-                    // 実際のエクスポート処理は後で実装する必要があります
-
-                    // var materialExporter = CreateMaterialExporter();
-                    // var textureSerializer = new RuntimeTextureSerializer();
-                    // bytes = Vrm10Exporter.Export(settings, _gameObject, materialExporter, textureSerializer, meta);
-
-                    // プレースホルダー: 空のGLBファイル
-                    bytes = System.Array.Empty<byte>();
-                    Debug.LogWarning("XRiftVrmExporter: Export is not yet implemented for UniVRM v0.131.0");
-                }
-
-                /* 古いVrmLib実装（UniVRM v0.131.0では動作しない）
                 using (var arrayManager = new NativeArrayManager())
                 {
                     using (var __ = new ScopedProfile("ModelExporter.Export"))
@@ -137,7 +118,7 @@ namespace XRift.VrmExporter.Core
                         using (var ___ = new ScopedProfile("ConvertCoordinate"))
                         {
                             // 座標系変換（Unity左手系 → VRM右手系）
-                            model.ConvertCoordinate(Coordinates.Vrm1, ignoreVrm: false);
+                            model.ConvertCoordinate(VrmLib.Coordinates.Vrm1, ignoreVrm: false);
                         }
 
                         using (var ___ = new ScopedProfile("Vrm10Exporter.Export"))
@@ -149,7 +130,8 @@ namespace XRift.VrmExporter.Core
                             // VRM 1.0エクスポート
                             using (var exporter = new Vrm10Exporter(settings, materialExporter, textureSerializer))
                             {
-                                exporter.Export(_gameObject, model, converter, new ExportArgs(), meta);
+                                var option = new VrmLib.ExportArgs { sparse = true };
+                                exporter.Export(_gameObject, model, converter, option, meta);
 
                                 // バイナリ出力
                                 bytes = exporter.Storage.ToGlbBytes();
@@ -157,7 +139,6 @@ namespace XRift.VrmExporter.Core
                         }
                     }
                 }
-                */
 
                 // ストリームに書き込み
                 stream.Write(bytes, 0, bytes.Length);
@@ -177,7 +158,9 @@ namespace XRift.VrmExporter.Core
 
             return new GltfExportSettings
             {
-                // Generator情報を設定
+                InverseAxis = Axes.Z,  // VRM 1.0必須
+                UseSparseAccessorForMorphTarget = true,  // ファイルサイズ削減
+                ExportVertexColor = true,  // 頂点カラーを保持
                 // TODO: 他の設定が必要な場合はXRiftVrmDescriptorから取得
             };
         }
@@ -215,7 +198,13 @@ namespace XRift.VrmExporter.Core
             var meta = new VRM10ObjectMeta
             {
                 Name = _gameObject.name,
-                Version = "0.0.0"
+                Version = "0.0.0",
+                Authors = new List<string> { System.Environment.UserName },
+                AvatarPermission = UniGLTF.Extensions.VRMC_vrm.AvatarPermissionType.onlyAuthor,
+                CommercialUsage = UniGLTF.Extensions.VRMC_vrm.CommercialUsageType.personalNonProfit,
+                CreditNotation = UniGLTF.Extensions.VRMC_vrm.CreditNotationType.required,
+                Modification = UniGLTF.Extensions.VRMC_vrm.ModificationType.prohibited,
+                Redistribution = false,
             };
             return meta;
         }
