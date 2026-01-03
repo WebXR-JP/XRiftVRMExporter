@@ -5,6 +5,7 @@
 
 using UniGLTF;
 using UniVRM10;
+using MToonExtension = UniGLTF.Extensions.VRMC_materials_mtoon;
 using UnityEngine;
 
 namespace XRift.VrmExporter.Core
@@ -53,34 +54,47 @@ namespace XRift.VrmExporter.Core
                 return false;
             }
 
-            // TODO: lilToon → MToon10 プロパティマッピング実装
-            // 現時点では基本的なPBRマテリアルとしてエクスポート
-            dst = CreateBasicMaterial(src, textureExporter);
+            dst = CreateMToonMaterial(src, textureExporter);
             return true;
         }
 
-        private glTFMaterial CreateBasicMaterial(Material src, ITextureExporter textureExporter)
+        private glTFMaterial CreateMToonMaterial(Material src, ITextureExporter textureExporter)
         {
+            // ベースマテリアル作成
             var dst = glTF_KHR_materials_unlit.CreateDefault();
             dst.name = src.name;
 
-            // 基本カラー
+            // VRMC_materials_mtoon拡張を作成
+            var mtoon = new MToonExtension.VRMC_materials_mtoon
+            {
+                SpecVersion = Vrm10Exporter.MTOON_SPEC_VERSION
+            };
+
+            // PBR設定
             dst.pbrMetallicRoughness = new glTFPbrMetallicRoughness();
 
-            // lilToonのメインカラーを取得
+            // ベースカラー
             if (src.HasProperty("_Color"))
             {
                 var color = src.GetColor("_Color");
-                dst.pbrMetallicRoughness.baseColorFactor = new[] { color.r, color.g, color.b, color.a };
+                // sRGB → Linear変換
+                dst.pbrMetallicRoughness.baseColorFactor = new[]
+                {
+                    Mathf.GammaToLinearSpace(color.r),
+                    Mathf.GammaToLinearSpace(color.g),
+                    Mathf.GammaToLinearSpace(color.b),
+                    color.a
+                };
             }
 
-            // lilToonのメインテクスチャを取得
+            // メインテクスチャ
             if (src.HasProperty("_MainTex"))
             {
                 var mainTex = src.GetTexture("_MainTex");
                 if (mainTex != null)
                 {
-                    var textureIndex = textureExporter.RegisterExportingAsSRgb(mainTex, needsAlpha: true);
+                    var needsAlpha = GetAlphaMode(src) != "OPAQUE";
+                    var textureIndex = textureExporter.RegisterExportingAsSRgb(mainTex, needsAlpha);
                     if (textureIndex != -1)
                     {
                         dst.pbrMetallicRoughness.baseColorTexture = new glTFMaterialBaseColorTextureInfo
@@ -91,17 +105,44 @@ namespace XRift.VrmExporter.Core
                 }
             }
 
-            // アルファモード（lilToonの透明モードに応じて設定）
-            if (src.HasProperty("_TransparentMode"))
-            {
-                var transparentMode = src.GetFloat("_TransparentMode");
-                if (transparentMode > 0)
-                {
-                    dst.alphaMode = "BLEND";
-                }
-            }
+            // アルファモード
+            dst.alphaMode = GetAlphaMode(src);
+
+            // シェードカラー（MToon10のデフォルト値を設定）
+            // TODO: lilToonの2ndカラーからマッピング
+            mtoon.ShadeColorFactor = new[] { 0.8f, 0.8f, 0.8f };
+
+            // シェーディングパラメータ（MToon10のデフォルト値）
+            mtoon.ShadingShiftFactor = 0.0f;
+            mtoon.ShadingToonyFactor = 0.9f;
+
+            // GI
+            mtoon.GiEqualizationFactor = 0.9f;
+
+            // アウトライン無効
+            mtoon.OutlineWidthMode = MToonExtension.OutlineWidthMode.none;
+
+            // MToon拡張をシリアライズ
+            MToonExtension.GltfSerializer.SerializeTo(ref dst.extensions, mtoon);
 
             return dst;
+        }
+
+        private string GetAlphaMode(Material src)
+        {
+            if (!src.HasProperty("_TransparentMode"))
+            {
+                return "OPAQUE";
+            }
+
+            var transparentMode = (int)src.GetFloat("_TransparentMode");
+            return transparentMode switch
+            {
+                0 => "OPAQUE",  // Opaque
+                1 => "MASK",    // Cutout
+                2 => "BLEND",   // Transparent
+                _ => "OPAQUE"
+            };
         }
     }
 }
