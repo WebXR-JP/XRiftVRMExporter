@@ -170,15 +170,9 @@ namespace XRift.VrmExporter.Core
         /// </summary>
         private IMaterialExporter CreateMaterialExporter()
         {
-            // Material Variantがある場合はカスタム実装を使用
-            // TODO: Material Variant対応の実装
-            // if (_materialVariants.Count > 0)
-            // {
-            //     return new XRiftMaterialExporter(_materialVariants);
-            // }
-
-            // 標準はUniVRM10のデフォルトMToon Exporter
-            return Vrm10MaterialExporterUtility.GetValidVrm10MaterialExporter();
+            // XRiftカスタムマテリアルエクスポーターを使用
+            // lilToon等の非標準シェーダーをMToon10に変換
+            return new XRiftMaterialExporter();
         }
 
         /// <summary>
