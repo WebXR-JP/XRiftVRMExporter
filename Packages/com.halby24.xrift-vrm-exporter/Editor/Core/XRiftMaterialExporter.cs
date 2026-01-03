@@ -229,8 +229,37 @@ namespace XRift.VrmExporter.Core
                 mtoon.ShadingShiftFactor = shadeShift;
                 mtoon.ShadingToonyFactor = Mathf.Clamp01(shadeToony);
 
+                // シャドウテクスチャ
+                Texture? shadowTexToExport = null;
+                var shadowBaked = false;
+
+#if XRIFT_HAS_LILTOON
+                // ベイクが必要な場合はベイクしたテクスチャを使用
+                if (_textureBaker.IsAvailable)
+                {
+                    var bakedShadowTex = _textureBaker.BakeShadowTexture(src, bakedMainTex);
+                    if (bakedShadowTex != null)
+                    {
+                        _bakedTextures.Add(bakedShadowTex);
+                        shadowTexToExport = bakedShadowTex;
+                        shadowBaked = true;
+                    }
+                }
+#endif
+
+                // ベイクされなかった場合は元のシャドウテクスチャを使用
+                if (shadowTexToExport == null && src.HasProperty("_ShadowColorTex"))
+                {
+                    shadowTexToExport = src.GetTexture("_ShadowColorTex");
+                }
+
                 // シャドウカラー
-                if (src.HasProperty("_ShadowColor"))
+                // ベイク済みの場合はカラーがテクスチャに含まれるので白
+                if (shadowBaked)
+                {
+                    mtoon.ShadeColorFactor = new[] { 1.0f, 1.0f, 1.0f };
+                }
+                else if (src.HasProperty("_ShadowColor"))
                 {
                     var shadowColor = src.GetColor("_ShadowColor");
                     var shadowStrength = src.HasProperty("_ShadowStrength")
@@ -256,28 +285,6 @@ namespace XRift.VrmExporter.Core
                 {
                     // デフォルトのシェードカラー（やや暗めの白）
                     mtoon.ShadeColorFactor = new[] { 0.8f, 0.8f, 0.8f };
-                }
-
-                // シャドウテクスチャ
-                Texture? shadowTexToExport = null;
-
-#if XRIFT_HAS_LILTOON
-                // ベイクが必要な場合はベイクしたテクスチャを使用
-                if (_textureBaker.IsAvailable)
-                {
-                    var bakedShadowTex = _textureBaker.BakeShadowTexture(src, bakedMainTex);
-                    if (bakedShadowTex != null)
-                    {
-                        _bakedTextures.Add(bakedShadowTex);
-                        shadowTexToExport = bakedShadowTex;
-                    }
-                }
-#endif
-
-                // ベイクされなかった場合は元のシャドウテクスチャを使用
-                if (shadowTexToExport == null && src.HasProperty("_ShadowColorTex"))
-                {
-                    shadowTexToExport = src.GetTexture("_ShadowColorTex");
                 }
 
                 if (shadowTexToExport != null)
@@ -505,8 +512,10 @@ namespace XRift.VrmExporter.Core
                 if (outlineWidth > 0)
                 {
                     // ワールド座標モードで出力
+                    // lilToonの_OutlineWidthはシェーダー内で0.01を掛けてメートルに変換している
+                    // MToon10のOutlineWidthFactorはメートル単位なので、同じ変換を適用
                     mtoon.OutlineWidthMode = MToonExtension.OutlineWidthMode.worldCoordinates;
-                    mtoon.OutlineWidthFactor = outlineWidth;
+                    mtoon.OutlineWidthFactor = outlineWidth * 0.01f;
 
                     // アウトラインカラー
                     if (src.HasProperty("_OutlineColor"))
