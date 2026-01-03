@@ -14,6 +14,7 @@ using XRift.VrmExporter.Core;
 using XRift.VrmExporter.Utils;
 
 [assembly: ExportsPlugin(typeof(XRiftVrmPlugin))]
+[assembly: ExportsPlugin(typeof(XRiftVrmRuntimePreviewPlugin))]
 
 namespace XRift.VrmExporter.Core
 {
@@ -36,10 +37,97 @@ namespace XRift.VrmExporter.Core
                 .Run(XRiftPhysBoneConvertPass.Instance);
 
             // Optimizing フェーズでVRMエクスポート処理を実行
-            // その後、ランタイムプレビュー用のVRMロード処理を実行
             InPhase(BuildPhase.Optimizing)
-                .Run(XRiftVrmExportPass.Instance)
+                .Run(XRiftVrmExportPass.Instance);
+        }
+    }
+
+    /// <summary>
+    /// ランタイムプレビュー用のNDMFプラグイン
+    /// プラットフォーム制限なしで実行される
+    /// </summary>
+    internal class XRiftVrmRuntimePreviewPlugin : Plugin<XRiftVrmRuntimePreviewPlugin>
+    {
+        public override string DisplayName => "XRift VRM Runtime Preview";
+        public override string QualifiedName => "com.halby24.xrift-vrm-exporter.runtime-preview";
+
+        protected override void Configure()
+        {
+            // Playモード時のみ、XRiftVrmRuntimePreviewコンポーネントがある場合に実行
+            // Transforming フェーズで PhysBone → SpringBone 変換を実行
+            InPhase(BuildPhase.Transforming)
+                .Run(XRiftRuntimePreviewPhysBoneConvertPass.Instance);
+
+            // Optimizing フェーズでVRMエクスポート＆ロード処理を実行
+            InPhase(BuildPhase.Optimizing)
+                .Run(XRiftRuntimePreviewExportPass.Instance)
                 .Then.Run(XRiftVrmRuntimePreviewPass.Instance);
+        }
+    }
+
+    /// <summary>
+    /// ランタイムプレビュー用 PhysBone → SpringBone 変換パス
+    /// </summary>
+    internal class XRiftRuntimePreviewPhysBoneConvertPass : Pass<XRiftRuntimePreviewPhysBoneConvertPass>
+    {
+        public override string QualifiedName => "com.halby24.xrift-vrm-exporter.runtime-preview.physbone-convert";
+        public override string DisplayName => "XRift Runtime Preview PhysBone Convert";
+
+        protected override void Execute(BuildContext context)
+        {
+            // Playモード時のみ
+            if (!Application.isPlaying) return;
+
+            // XRiftVrmRuntimePreviewコンポーネントがなければスキップ
+            var preview = context.AvatarRootObject.GetComponent<XRiftVrmRuntimePreview>();
+            if (preview == null) return;
+
+            var gameObject = context.AvatarRootObject;
+
+            // 除外設定を取得（XRiftVrmDescriptorがあれば使用）
+            var descriptor = gameObject.GetComponent<XRiftVrmDescriptor>();
+            var excludedColliders = descriptor?.GetExcludedSpringBoneColliderTransforms()
+                ?? new HashSet<Transform>();
+            var excludedBones = descriptor?.GetExcludedSpringBoneTransforms()
+                ?? new HashSet<Transform>();
+
+            // PhysBone → SpringBone 変換を実行
+            PhysBoneToSpringBoneConverter.Convert(gameObject, excludedColliders, excludedBones);
+
+            Debug.Log("[XRift VRM Exporter] Runtime Preview: PhysBone → SpringBone conversion completed");
+        }
+    }
+
+    /// <summary>
+    /// ランタイムプレビュー用 VRM エクスポートパス
+    /// </summary>
+    internal class XRiftRuntimePreviewExportPass : Pass<XRiftRuntimePreviewExportPass>
+    {
+        public override string QualifiedName => "com.halby24.xrift-vrm-exporter.runtime-preview.export";
+        public override string DisplayName => "XRift Runtime Preview Export";
+
+        protected override void Execute(BuildContext context)
+        {
+            // Playモード時のみ
+            if (!Application.isPlaying) return;
+
+            // XRiftVrmRuntimePreviewコンポーネントがなければスキップ
+            var preview = context.AvatarRootObject.GetComponent<XRiftVrmRuntimePreview>();
+            if (preview == null) return;
+
+            var gameObject = context.AvatarRootObject;
+            var basePath = AssetPathUtils.GetTempPath(gameObject);
+            var assetSaver = new TempAssetSaver(basePath);
+
+            var state = context.GetState<XRiftBuildState>();
+
+            using var exporter = new XRiftVrmExporter(gameObject, assetSaver, state.MaterialVariants);
+            using var memoryStream = new MemoryStream();
+
+            exporter.Export(memoryStream);
+            state.ExportedVrmData = memoryStream.ToArray();
+
+            Debug.Log($"[XRift VRM Exporter] Runtime Preview: Exported VRM ({state.ExportedVrmData.Length} bytes)");
         }
     }
 
