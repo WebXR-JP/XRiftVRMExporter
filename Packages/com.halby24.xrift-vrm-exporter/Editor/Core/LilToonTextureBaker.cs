@@ -115,24 +115,33 @@ namespace XRift.VrmExporter.Core
             {
                 var shadowColor = material.HasProperty("_ShadowColor") ? material.GetColor("_ShadowColor") : Color.white;
                 var shadowStrength = material.HasProperty("_ShadowStrength") ? material.GetFloat("_ShadowStrength") : 1f;
+                var mainColor = material.HasProperty("_Color") ? material.GetColor("_Color") : Color.white;
+
+                // コントラスト（_ShadowMainStrength）を影色に事前適用
+                // lilToonの計算式: lerp(shadowColor, shadowColor * mainColor, contrast)
+                var adjustedShadowColor = Color.Lerp(
+                    shadowColor,
+                    new Color(
+                        shadowColor.r * mainColor.r,
+                        shadowColor.g * mainColor.g,
+                        shadowColor.b * mainColor.b,
+                        shadowColor.a
+                    ),
+                    shadowMainStrength
+                );
 
                 bakerMaterial.SetColor("_Color", Color.white);
                 bakerMaterial.SetVector("_MainTexHSVG", DefaultHSVG);
                 bakerMaterial.SetFloat("_UseMain2ndTex", 1f);
-                bakerMaterial.SetFloat("_UseMain3rdTex", 1f);
+                bakerMaterial.SetFloat("_UseMain3rdTex", 0f); // 3rdレイヤー無効化
 
-                // メインテクスチャとの乗算用
-                bakerMaterial.SetColor("_Color3rd", new Color(1f, 1f, 1f, shadowMainStrength));
-                bakerMaterial.SetFloat("_Main3rdTexBlendMode", 3f); // 乗算
-
-                // シャドウカラー適用
+                // シャドウカラー適用（コントラスト適用済み）
                 bakerMaterial.SetColor("_Color2nd", new Color(
-                    shadowColor.r, shadowColor.g, shadowColor.b, shadowStrength));
+                    adjustedShadowColor.r, adjustedShadowColor.g, adjustedShadowColor.b, shadowStrength));
                 bakerMaterial.SetFloat("_Main2ndTexBlendMode", 0f);
                 bakerMaterial.SetFloat("_Main2ndTexAlphaMode", 0f);
 
                 bakerMaterial.SetTexture("_MainTex", mainTex);
-                bakerMaterial.SetTexture("_Main3rdTex", mainTex);
 
                 // シャドウテクスチャ
                 var shadowColorTex = material.HasProperty("_ShadowColorTex")
@@ -144,7 +153,6 @@ namespace XRift.VrmExporter.Core
                 if (shadowStrengthMask != null)
                 {
                     bakerMaterial.SetTexture("_Main2ndBlendMask", shadowStrengthMask);
-                    bakerMaterial.SetTexture("_Main3rdBlendMask", shadowStrengthMask);
                 }
 
                 return RunBake(mainTex, bakerMaterial);
