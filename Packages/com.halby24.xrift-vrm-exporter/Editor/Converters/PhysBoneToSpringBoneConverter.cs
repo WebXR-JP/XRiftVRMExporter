@@ -247,8 +247,15 @@ namespace XRift.VrmExporter.Converters
 
             foreach (var transform in transforms)
             {
-                // 各ボーンにJointコンポーネントを追加
-                var joint = transform.gameObject.AddComponent<VRM10SpringBoneJoint>();
+                // 各ボーンにJointコンポーネントを追加（既存があれば再利用）
+                var joint = transform.gameObject.GetComponent<VRM10SpringBoneJoint>()
+                            ?? transform.gameObject.AddComponent<VRM10SpringBoneJoint>();
+
+                if (joint == null)
+                {
+                    Debug.LogWarning($"[PhysBoneToSpringBone] VRM10SpringBoneJointの追加に失敗: {transform.name}");
+                    continue;
+                }
 
                 // Depth比率を計算（カーブ評価用）
                 var (upperDepth, lowerDepth) = FindTransformDepth(transform, rootTransform);
