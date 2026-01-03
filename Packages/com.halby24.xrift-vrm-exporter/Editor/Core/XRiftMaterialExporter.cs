@@ -294,6 +294,8 @@ namespace XRift.VrmExporter.Core
                     mtoon.ShadeColorFactor = new[] { 0.8f, 0.8f, 0.8f };
                 }
 
+                // シャドウテクスチャをアサイン
+                // シャドウテクスチャが空の場合はメインテクスチャと同じものを使用
                 if (shadowTexToExport != null)
                 {
                     var textureIndex = textureExporter.RegisterExportingAsSRgb(shadowTexToExport, needsAlpha: false);
@@ -305,13 +307,29 @@ namespace XRift.VrmExporter.Core
                         };
                     }
                 }
+                else if (dst.pbrMetallicRoughness?.baseColorTexture != null)
+                {
+                    // シャドウテクスチャが無い場合、メインテクスチャと同じインデックスを使用
+                    mtoon.ShadeMultiplyTexture = new MToonExtension.TextureInfo
+                    {
+                        Index = dst.pbrMetallicRoughness.baseColorTexture.index
+                    };
+                }
             }
             else
             {
-                // シャドウ無効時はデフォルト値
+                // シャドウ無効時でもメインテクスチャをシャドウテクスチャとしてアサイン
                 mtoon.ShadeColorFactor = new[] { 1.0f, 1.0f, 1.0f };
                 mtoon.ShadingShiftFactor = 0.0f;
                 mtoon.ShadingToonyFactor = 0.9f;
+
+                if (dst.pbrMetallicRoughness?.baseColorTexture != null)
+                {
+                    mtoon.ShadeMultiplyTexture = new MToonExtension.TextureInfo
+                    {
+                        Index = dst.pbrMetallicRoughness.baseColorTexture.index
+                    };
+                }
             }
         }
 
