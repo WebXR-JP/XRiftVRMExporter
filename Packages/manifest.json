@@ -2,6 +2,7 @@
   "dependencies": {
     "com.biosmanager.autodarktheme": "https://github.com/biosmanager/AutoDarkTheme.git#release",
     "com.coplaydev.unity-mcp": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity",
+    "com.unity.animation.rigging": "1.2.1",
     "com.unity.collab-proxy": "2.11.2",
     "com.unity.feature.development": "1.0.2",
     "com.unity.timeline": "1.8.9",
