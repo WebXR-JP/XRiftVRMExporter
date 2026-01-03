@@ -450,7 +450,11 @@ namespace XRift.VrmExporter.Core
                 return;
             }
 
-            // MatCapブレンドモードが乗算(3)の場合はMToon10では表現できないためスキップ
+            // lilToonのMatCapブレンドモード: 0=Normal, 1=Add, 2=Screen, 3=Multiply
+            // MToon10は加算のみサポート
+            // - Add(1)は完全互換
+            // - Normal(0), Screen(2)は加算で近似
+            // - Multiply(3)は加算で表現できないためスキップ
             if (src.HasProperty("_MatCapBlendMode") && src.GetFloat("_MatCapBlendMode") == 3.0f)
             {
                 mtoon.MatcapFactor = new[] { 0f, 0f, 0f };
@@ -489,19 +493,27 @@ namespace XRift.VrmExporter.Core
                 }
             }
 
-            // ベイク済みの場合はファクターは白、そうでなければMatCapカラーを設定
+            // MatCapカラーのアルファ値を取得（加算の強度として使用）
+            var matcapAlpha = 1f;
+            if (src.HasProperty("_MatCapColor"))
+            {
+                matcapAlpha = src.GetColor("_MatCapColor").a;
+            }
+
+            // ベイク済みの場合はRGBは白でアルファのみ反映、そうでなければMatCapカラーを設定
 #if XRIFT_HAS_LILTOON
-            // ベイク時はカラーがテクスチャに含まれるので白
-            mtoon.MatcapFactor = new[] { 1f, 1f, 1f };
+            // ベイク時はRGBカラーがテクスチャに含まれるので、アルファのみファクターに反映
+            mtoon.MatcapFactor = new[] { matcapAlpha, matcapAlpha, matcapAlpha };
 #else
             if (src.HasProperty("_MatCapColor"))
             {
                 var matcapColor = src.GetColor("_MatCapColor");
+                // RGB × アルファで加算強度を調整
                 mtoon.MatcapFactor = new[]
                 {
-                    Mathf.GammaToLinearSpace(matcapColor.r),
-                    Mathf.GammaToLinearSpace(matcapColor.g),
-                    Mathf.GammaToLinearSpace(matcapColor.b)
+                    Mathf.GammaToLinearSpace(matcapColor.r) * matcapAlpha,
+                    Mathf.GammaToLinearSpace(matcapColor.g) * matcapAlpha,
+                    Mathf.GammaToLinearSpace(matcapColor.b) * matcapAlpha
                 };
             }
             else
