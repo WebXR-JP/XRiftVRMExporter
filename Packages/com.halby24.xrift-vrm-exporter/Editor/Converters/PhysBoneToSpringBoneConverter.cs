@@ -256,31 +256,42 @@ namespace XRift.VrmExporter.Converters
                 var depthRatio = totalDepth != 0 ? upperDepth / (float)totalDepth : 0f;
 
                 // パラメータ変換
+                // PhysBone: pull=復元力, stiffness=動きにくさ, spring=弾力性, immobile=追従しにくさ
+                // VRM SpringBone: stiffnessForce=復元力, dragForce=減衰
                 var gravity = EvaluateCurve(pb.gravity, pb.gravityCurve, depthRatio);
-                var stiffness = EvaluateCurve(pb.stiffness, pb.stiffnessCurve, depthRatio);
-                var hitRadius = EvaluateCurve(pb.radius, pb.radiusCurve, depthRatio);
+                var gravityFalloff = pb.gravityFalloff;
                 var pull = EvaluateCurve(pb.pull, pb.pullCurve, depthRatio);
-                var immobile = EvaluateCurve(pb.immobile, pb.immobileCurve, depthRatio) * 0.5f;
+                var springiness = EvaluateCurve(pb.spring, pb.springCurve, depthRatio);
+                var stiffness = EvaluateCurve(pb.stiffness, pb.stiffnessCurve, depthRatio);
+                var immobile = EvaluateCurve(pb.immobile, pb.immobileCurve, depthRatio);
+                var hitRadius = EvaluateCurve(pb.radius, pb.radiusCurve, depthRatio);
 
                 // LimitTypeに基づくファクター計算
-                float stiffnessFactor, pullFactor;
+                float pullFactor;
                 if (pb.limitType != VRCPhysBoneBase.LimitType.None)
                 {
                     var maxAngleX = EvaluateCurve(pb.maxAngleX, pb.maxAngleXCurve, depthRatio);
-                    stiffnessFactor = maxAngleX > 0f ? 1.0f / Mathf.Clamp01(maxAngleX / 180.0f) : 0f;
-                    pullFactor = stiffnessFactor * 0.5f;
+                    pullFactor = maxAngleX > 0f ? 1.0f / Mathf.Clamp01(maxAngleX / 180.0f) : 0f;
                 }
                 else
                 {
-                    stiffnessFactor = 1.0f;
                     pullFactor = 1.0f;
                 }
 
+                // GravityFalloff: ボーンが重力方向を向いているほど重力を減衰
+                // 初期姿勢でのボーン方向と重力方向のdotを計算
+                var gravityDir = new Vector3(0, -1, 0);
+                var boneDir = GetBoneDirection(transform);
+                var falloffFactor = 1.0f - gravityFalloff * Mathf.Max(0, Vector3.Dot(boneDir, gravityDir));
+                var effectiveGravity = gravity * falloffFactor;
+
                 // VRM10SpringBoneJoint にパラメータ設定
-                joint.m_gravityPower = gravity;
-                joint.m_gravityDir = new Vector3(0, -1, 0);
-                joint.m_stiffnessForce = immobile + stiffness * stiffnessFactor;
-                joint.m_dragForce = Mathf.Clamp01(immobile + pull * pullFactor);
+                // pull(復元力) × springiness(弾力性) → stiffnessForce
+                // stiffness(動きにくさ) + immobile(追従しにくさ) → dragForce
+                joint.m_gravityPower = effectiveGravity;
+                joint.m_gravityDir = gravityDir;
+                joint.m_stiffnessForce = pull * springiness * pullFactor;
+                joint.m_dragForce = Mathf.Clamp01(stiffness + immobile);
                 joint.m_jointRadius = hitRadius;
 
                 joints.Add(joint);
@@ -374,6 +385,29 @@ namespace XRift.VrmExporter.Converters
             }
 
             return numChildren > 0;
+        }
+
+        /// <summary>
+        /// ボーンの方向ベクトルを取得（子がある場合は子への方向、なければ親からの方向）
+        /// </summary>
+        private static Vector3 GetBoneDirection(Transform transform)
+        {
+            if (transform.childCount > 0)
+            {
+                // 子がある場合は最初の子への方向
+                var child = transform.GetChild(0);
+                return (child.position - transform.position).normalized;
+            }
+            else if (transform.parent != null)
+            {
+                // 子がない場合は親からの方向
+                return (transform.position - transform.parent.position).normalized;
+            }
+            else
+            {
+                // どちらもない場合はデフォルトで下方向
+                return Vector3.down;
+            }
         }
 
         /// <summary>
