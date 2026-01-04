@@ -1,0 +1,45 @@
+{
+  "name": "XRift VRM Exporter VPM Repository",
+  "author": "halby24",
+  "url": "https://webxr-jp.github.io/XRiftVRMExporter/vpm.json",
+  "id": "com.halby24.vpm-repos",
+  "packages": {
+    "com.halby24.xrift-vrm-exporter": {
+      "versions": {
+        "0.1.0": {
+          "name": "com.halby24.xrift-vrm-exporter",
+          "displayName": "XRift VRM Exporter",
+          "version": "0.1.0",
+          "unity": "2022.3",
+          "description": "VRM 1.0 exporter for XRift platform with NDMF integration. Exports VRChat avatars to VRM 1.0 format with PhysBone to SpringBone conversion and lilToon to MToon material conversion.",
+          "author": {
+            "name": "halby24",
+            "url": "https://github.com/WebXR-JP/XRiftVRMExporter/releases/download/v0.1.0/com.halby24.xrift-vrm-exporter-0.1.0.zip"
+          },
+          "license": "MPL-2.0",
+          "keywords": [
+            "vrm",
+            "exporter",
+            "xrift",
+            "vrchat",
+            "ndmf",
+            "avatar"
+          ],
+          "url": "https://github.com/WebXR-JP/XRiftVRMExporter/releases/download/v0.1.0/com.halby24.xrift-vrm-exporter-0.1.0.zip",
+          "repo": "https://webxr-jp.github.io/XRiftVRMExporter/vpm.json",
+          "documentationUrl": "https://github.com/WebXR-JP/XRiftVRMExporter/blob/main/Packages/com.halby24.xrift-vrm-exporter/README.md",
+          "changelogUrl": "https://github.com/WebXR-JP/XRiftVRMExporter/blob/main/Packages/com.halby24.xrift-vrm-exporter/CHANGELOG.md",
+          "licensesUrl": "https://github.com/WebXR-JP/XRiftVRMExporter/blob/main/LICENSE",
+          "dependencies": {
+            "com.unity.nuget.newtonsoft-json": "3.2.1",
+            "com.vrmc.gltf": "0.131.0",
+            "com.vrmc.vrm": "0.131.0"
+          },
+          "vpmDependencies": {
+            "nadena.dev.ndmf": ">=1.8.0"
+          }
+        }
+      }
+    }
+  }
+}
