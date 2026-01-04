@@ -1,0 +1,6 @@
+{
+  "enabledMcpjsonServers": [
+    "UnityMCP"
+  ],
+  "enableAllProjectMcpServers": true
+}

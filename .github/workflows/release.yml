@@ -1,0 +1,64 @@
+name: Build Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Set version in package.json
+        run: |
+          cd Packages/com.halby24.xrift-vrm-exporter
+          # Update version in package.json
+          sed -i 's/"version": ".*"/"version": "${{ steps.version.outputs.VERSION }}"/' package.json
+          # Update url in package.json
+          sed -i 's|"url": ".*"|"url": "https://github.com/WebXR-JP/XRiftVRMExporter/releases/download/v${{ steps.version.outputs.VERSION }}/com.halby24.xrift-vrm-exporter-${{ steps.version.outputs.VERSION }}.zip"|' package.json
+
+      - name: Create package zip
+        run: |
+          cd Packages
+          zip -r com.halby24.xrift-vrm-exporter-${{ steps.version.outputs.VERSION }}.zip \
+            com.halby24.xrift-vrm-exporter \
+            -x "*.git*" "*.DS_Store"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: Packages/com.halby24.xrift-vrm-exporter-${{ steps.version.outputs.VERSION }}.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Update VPM Repository
+        run: |
+          python scripts/update-vpm.py ${{ steps.version.outputs.VERSION }}
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./vpm-repo
+          keep_files: false
