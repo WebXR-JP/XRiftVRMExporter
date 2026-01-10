@@ -99,9 +99,12 @@ namespace XRift.VrmExporter.Core
             // PBR設定
             dst.pbrMetallicRoughness = new glTFPbrMetallicRoughness();
 
+            // === 乗算MatCapの色を取得（BaseColor/ShadeColorに適用するため先に計算） ===
+            var (matcapBaseColor, matcapShadeColor) = GetMatCapMultiplyColors(src);
+
             // === ベースカラー ===
             // ベイクされたメインテクスチャを取得（シャドウのベイクに使用）
-            ExportBaseColor(src, textureExporter, dst, mtoon, out var bakedMainTex);
+            ExportBaseColor(src, textureExporter, dst, mtoon, matcapBaseColor, out var bakedMainTex);
 
             // === アルファモード ===
             dst.alphaMode = GetAlphaMode(src);
@@ -118,7 +121,7 @@ namespace XRift.VrmExporter.Core
             }
 
             // === シャドウ（影） ===
-            ExportShadow(src, textureExporter, dst, mtoon, bakedMainTex);
+            ExportShadow(src, textureExporter, dst, mtoon, bakedMainTex, matcapShadeColor);
 
             // === 法線マップ ===
             ExportNormalMap(src, textureExporter, dst);
@@ -156,7 +159,7 @@ namespace XRift.VrmExporter.Core
         /// lilToonのテクスチャベイク処理で2nd/3rdレイヤー、HSVG調整等を合成
         /// </summary>
         private void ExportBaseColor(Material src, ITextureExporter textureExporter,
-            glTFMaterial dst, MToonExtension.VRMC_materials_mtoon mtoon, out Texture? bakedMainTex)
+            glTFMaterial dst, MToonExtension.VRMC_materials_mtoon mtoon, Color matcapMultiplyColor, out Texture? bakedMainTex)
         {
             bakedMainTex = null;
 
@@ -164,6 +167,10 @@ namespace XRift.VrmExporter.Core
             if (src.HasProperty("_Color"))
             {
                 var color = src.GetColor("_Color");
+                // 乗算MatCapの平均色を適用
+                color.r *= matcapMultiplyColor.r;
+                color.g *= matcapMultiplyColor.g;
+                color.b *= matcapMultiplyColor.b;
                 // sRGB → Linear変換
                 dst.pbrMetallicRoughness.baseColorFactor = new[]
                 {
@@ -214,7 +221,7 @@ namespace XRift.VrmExporter.Core
         /// lilToon公式の変換ロジックをベースに実装
         /// </summary>
         private void ExportShadow(Material src, ITextureExporter textureExporter,
-            glTFMaterial dst, MToonExtension.VRMC_materials_mtoon mtoon, Texture? bakedMainTex)
+            glTFMaterial dst, MToonExtension.VRMC_materials_mtoon mtoon, Texture? bakedMainTex, Color matcapShadeColor)
         {
             // _UseShadow が有効かチェック
             var useShadow = src.HasProperty("_UseShadow") && src.GetFloat("_UseShadow") == 1.0f;
@@ -261,10 +268,11 @@ namespace XRift.VrmExporter.Core
                 }
 
                 // シャドウカラー
-                // ベイク済みの場合はカラーがテクスチャに含まれるので白
+                // ベイク済みの場合はカラーがテクスチャに含まれるので白（ただしmatcapShadeColorは適用）
+                Color shadeColor;
                 if (shadowBaked)
                 {
-                    mtoon.ShadeColorFactor = new[] { 1.0f, 1.0f, 1.0f };
+                    shadeColor = Color.white;
                 }
                 else if (src.HasProperty("_ShadowColor"))
                 {
@@ -274,25 +282,30 @@ namespace XRift.VrmExporter.Core
                         : 1.0f;
 
                     // 影の強さを適用した色を計算
-                    var shadeColor = new Color(
+                    shadeColor = new Color(
                         1.0f - (1.0f - shadowColor.r) * shadowStrength,
                         1.0f - (1.0f - shadowColor.g) * shadowStrength,
                         1.0f - (1.0f - shadowColor.b) * shadowStrength,
                         1.0f
                     );
-
-                    mtoon.ShadeColorFactor = new[]
-                    {
-                        Mathf.GammaToLinearSpace(shadeColor.r),
-                        Mathf.GammaToLinearSpace(shadeColor.g),
-                        Mathf.GammaToLinearSpace(shadeColor.b)
-                    };
                 }
                 else
                 {
                     // デフォルトのシェードカラー（やや暗めの白）
-                    mtoon.ShadeColorFactor = new[] { 0.8f, 0.8f, 0.8f };
+                    shadeColor = new Color(0.8f, 0.8f, 0.8f, 1.0f);
                 }
+
+                // 乗算MatCapのシェードカラーを適用
+                shadeColor.r *= matcapShadeColor.r;
+                shadeColor.g *= matcapShadeColor.g;
+                shadeColor.b *= matcapShadeColor.b;
+
+                mtoon.ShadeColorFactor = new[]
+                {
+                    Mathf.GammaToLinearSpace(shadeColor.r),
+                    Mathf.GammaToLinearSpace(shadeColor.g),
+                    Mathf.GammaToLinearSpace(shadeColor.b)
+                };
 
                 // シャドウテクスチャをアサイン
                 // シャドウテクスチャが空の場合はメインテクスチャと同じものを使用
@@ -319,7 +332,13 @@ namespace XRift.VrmExporter.Core
             else
             {
                 // シャドウ無効時でもメインテクスチャをシャドウテクスチャとしてアサイン
-                mtoon.ShadeColorFactor = new[] { 1.0f, 1.0f, 1.0f };
+                // 乗算MatCapのシェードカラーを適用
+                mtoon.ShadeColorFactor = new[]
+                {
+                    Mathf.GammaToLinearSpace(matcapShadeColor.r),
+                    Mathf.GammaToLinearSpace(matcapShadeColor.g),
+                    Mathf.GammaToLinearSpace(matcapShadeColor.b)
+                };
                 mtoon.ShadingShiftFactor = 0.0f;
                 mtoon.ShadingToonyFactor = 0.9f;
 
@@ -450,17 +469,6 @@ namespace XRift.VrmExporter.Core
                 return;
             }
 
-            // lilToonのMatCapブレンドモード: 0=Normal, 1=Add, 2=Screen, 3=Multiply
-            // MToon10は加算のみサポート
-            // - Add(1)は完全互換
-            // - Normal(0), Screen(2)は加算で近似
-            // - Multiply(3)は加算で表現できないためスキップ
-            if (src.HasProperty("_MatCapBlendMode") && src.GetFloat("_MatCapBlendMode") == 3.0f)
-            {
-                mtoon.MatcapFactor = new[] { 0f, 0f, 0f };
-                return;
-            }
-
             // MToonにはMatcapMask機能がないため、lilToonでマスクが設定されている場合はMatcap自体をスキップ
             if (src.HasProperty("_MatCapBlendMask"))
             {
@@ -472,36 +480,52 @@ namespace XRift.VrmExporter.Core
                 }
             }
 
-            // MatCapテクスチャ
-            if (src.HasProperty("_MatCapTex"))
+            // lilToonのMatCapブレンドモード: 0=Normal, 1=Add, 2=Screen, 3=Multiply
+            // 乗算モードはBaseColorに平均色を適用済みなので、MatCapとしてはスキップ
+            var blendMode = src.HasProperty("_MatCapBlendMode") ? src.GetFloat("_MatCapBlendMode") : 0f;
+            if (Mathf.Approximately(blendMode, 3.0f))
             {
-                var matcapTex = src.GetTexture("_MatCapTex");
-                if (matcapTex != null)
-                {
-                    Texture textureToExport = matcapTex;
+                mtoon.MatcapFactor = new[] { 0f, 0f, 0f };
+                return;
+            }
+
+            // 通常モード（Normal, Add, Screen）: 加算として処理
+            ExportMatCapAdditiveMode(src, textureExporter, mtoon);
+        }
+
+        /// <summary>
+        /// MatCap加算モード（Normal, Add, Screen）のエクスポート
+        /// </summary>
+        private void ExportMatCapAdditiveMode(Material src, ITextureExporter textureExporter,
+            MToonExtension.VRMC_materials_mtoon mtoon)
+        {
+            if (!src.HasProperty("_MatCapTex")) return;
+
+            var matcapTex = src.GetTexture("_MatCapTex");
+            if (matcapTex == null) return;
+
+            Texture textureToExport = matcapTex;
 
 #if XRIFT_HAS_LILTOON
-                    // MatCapカラーをテクスチャにベイク
-                    if (_textureBaker.IsAvailable)
-                    {
-                        var bakedMatcapTex = _textureBaker.BakeMatCapTexture(src);
-                        if (bakedMatcapTex != null)
-                        {
-                            _bakedTextures.Add(bakedMatcapTex);
-                            textureToExport = bakedMatcapTex;
-                        }
-                    }
+            // MatCapカラーをテクスチャにベイク
+            if (_textureBaker.IsAvailable)
+            {
+                var bakedMatcapTex = _textureBaker.BakeMatCapTexture(src);
+                if (bakedMatcapTex != null)
+                {
+                    _bakedTextures.Add(bakedMatcapTex);
+                    textureToExport = bakedMatcapTex;
+                }
+            }
 #endif
 
-                    var textureIndex = textureExporter.RegisterExportingAsSRgb(textureToExport, needsAlpha: false);
-                    if (textureIndex != -1)
-                    {
-                        mtoon.MatcapTexture = new MToonExtension.TextureInfo
-                        {
-                            Index = textureIndex
-                        };
-                    }
-                }
+            var textureIndex = textureExporter.RegisterExportingAsSRgb(textureToExport, needsAlpha: false);
+            if (textureIndex != -1)
+            {
+                mtoon.MatcapTexture = new MToonExtension.TextureInfo
+                {
+                    Index = textureIndex
+                };
             }
 
             // MatCapカラーのアルファ値を取得（加算の強度として使用）
@@ -511,7 +535,6 @@ namespace XRift.VrmExporter.Core
                 matcapAlpha = src.GetColor("_MatCapColor").a;
             }
 
-            // ベイク済みの場合はRGBは白でアルファのみ反映、そうでなければMatCapカラーを設定
 #if XRIFT_HAS_LILTOON
             // ベイク時はRGBカラーがテクスチャに含まれるので、アルファのみファクターに反映
             mtoon.MatcapFactor = new[] { matcapAlpha, matcapAlpha, matcapAlpha };
@@ -532,6 +555,36 @@ namespace XRift.VrmExporter.Core
                 mtoon.MatcapFactor = new[] { 1f, 1f, 1f };
             }
 #endif
+        }
+
+        /// <summary>
+        /// 乗算MatCapの色を取得（BaseColor/ShadeColorに適用するため）
+        /// 乗算モードでない場合は白（効果なし）を返す
+        /// </summary>
+        private (Color baseColor, Color shadeColor) GetMatCapMultiplyColors(Material src)
+        {
+            var white = Color.white;
+            var useMatCap = src.HasProperty("_UseMatCap") && src.GetFloat("_UseMatCap") == 1.0f;
+            if (!useMatCap) return (white, white);
+
+            // 乗算モードかチェック
+            var blendMode = src.HasProperty("_MatCapBlendMode") ? src.GetFloat("_MatCapBlendMode") : 0f;
+            if (!Mathf.Approximately(blendMode, 3.0f)) return (white, white);
+
+            // マスクが設定されている場合はスキップ
+            if (src.HasProperty("_MatCapBlendMask"))
+            {
+                var matcapMask = src.GetTexture("_MatCapBlendMask");
+                if (matcapMask != null) return (white, white);
+            }
+
+#if XRIFT_HAS_LILTOON
+            if (_textureBaker.IsAvailable)
+            {
+                return _textureBaker.GetMatCapMultiplyColors(src);
+            }
+#endif
+            return (white, white);
         }
 
         /// <summary>

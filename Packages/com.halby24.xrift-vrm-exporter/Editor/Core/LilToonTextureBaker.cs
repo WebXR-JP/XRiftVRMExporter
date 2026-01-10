@@ -194,6 +194,118 @@ namespace XRift.VrmExporter.Core
             }
         }
 
+        /// <summary>
+        /// 乗算モードMatCapの明暗を分離して取得
+        /// BaseColor用（明るい方）とShadeColor用（暗い方）の2色を返す
+        /// </summary>
+        /// <param name="lerpFactor">明暗を近づける度合い（0.0=そのまま、1.0=同じ色になる）</param>
+        public (Color baseColor, Color shadeColor) GetMatCapMultiplyColors(Material material, float lerpFactor = 0.3f)
+        {
+            var white = Color.white;
+            var useMatCap = material.HasProperty("_UseMatCap") && material.GetFloat("_UseMatCap") != 0f;
+            if (!useMatCap) return (white, white);
+
+            var matcapTex = material.HasProperty("_MatCapTex") ? material.GetTexture("_MatCapTex") as Texture2D : null;
+            if (matcapTex == null) return (white, white);
+
+            var matcapColor = material.HasProperty("_MatCapColor") ? material.GetColor("_MatCapColor") : Color.white;
+            var matcapBlend = material.HasProperty("_MatCapBlend") ? material.GetFloat("_MatCapBlend") : 1f;
+
+            // MatCapテクスチャから最大・最小輝度の色を取得
+            var (maxColor, minColor) = GetMinMaxLuminanceColors(matcapTex);
+
+            // MatCapColorを適用
+            maxColor = new Color(
+                maxColor.r * matcapColor.r,
+                maxColor.g * matcapColor.g,
+                maxColor.b * matcapColor.b,
+                1f
+            );
+            minColor = new Color(
+                minColor.r * matcapColor.r,
+                minColor.g * matcapColor.g,
+                minColor.b * matcapColor.b,
+                1f
+            );
+
+            // 明暗を少し近づける（極端な差を緩和）
+            var lerpedMax = Color.Lerp(maxColor, minColor, lerpFactor);
+            var lerpedMin = Color.Lerp(minColor, maxColor, lerpFactor);
+
+            // _MatCapBlendと_MatCapColor.aで強度を調整
+            var strength = matcapBlend * matcapColor.a;
+            var baseResult = Color.Lerp(white, lerpedMax, strength);
+            var shadeResult = Color.Lerp(white, lerpedMin, strength);
+
+            return (baseResult, shadeResult);
+        }
+
+        /// <summary>
+        /// テクスチャから最大輝度と最小輝度の色を取得
+        /// </summary>
+        private (Color maxColor, Color minColor) GetMinMaxLuminanceColors(Texture2D srcTexture)
+        {
+            var readableTex = GetReadableTexture(srcTexture);
+            var pixels = readableTex.GetPixels();
+
+            Color maxColor = Color.black;
+            Color minColor = Color.white;
+            float maxLum = 0f;
+            float minLum = 1f;
+
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                var p = pixels[i];
+                // 輝度計算（Rec.709）
+                float lum = p.r * 0.2126f + p.g * 0.7152f + p.b * 0.0722f;
+
+                if (lum > maxLum)
+                {
+                    maxLum = lum;
+                    maxColor = p;
+                }
+                if (lum < minLum)
+                {
+                    minLum = lum;
+                    minColor = p;
+                }
+            }
+
+            if (readableTex != srcTexture)
+            {
+                Object.DestroyImmediate(readableTex);
+            }
+
+            return (maxColor, minColor);
+        }
+
+        /// <summary>
+        /// テクスチャを読み取り可能な状態で取得
+        /// </summary>
+        private static Texture2D GetReadableTexture(Texture2D srcTexture)
+        {
+            if (srcTexture.isReadable)
+            {
+                return srcTexture;
+            }
+
+            // RenderTextureを使って読み取り可能なコピーを作成
+            var tmpRT = RenderTexture.GetTemporary(srcTexture.width, srcTexture.height, 0, RenderTextureFormat.ARGB32);
+            var prevRT = RenderTexture.active;
+
+            Graphics.Blit(srcTexture, tmpRT);
+            RenderTexture.active = tmpRT;
+
+            var readableTex = new Texture2D(srcTexture.width, srcTexture.height, TextureFormat.RGBA32, false);
+            readableTex.ReadPixels(new Rect(0, 0, srcTexture.width, srcTexture.height), 0, 0);
+            readableTex.Apply();
+
+            RenderTexture.active = prevRT;
+            RenderTexture.ReleaseTemporary(tmpRT);
+
+            return readableTex;
+        }
+
         private void SetupLayerParams(Material bakerMaterial, Material srcMaterial, string suffix)
         {
             var useProperty = $"_UseMain{suffix}Tex";
