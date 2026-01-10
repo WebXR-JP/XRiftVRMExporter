@@ -39,7 +39,10 @@ namespace XRift.VrmExporter.Core
                 .Then.Run(XRiftPhysBoneConvertPass.Instance);
 
             // Optimizing フェーズでVRMエクスポート処理を実行
+            // 他の最適化プラグイン（AAO, MA）の後に実行
             InPhase(BuildPhase.Optimizing)
+                .AfterPlugin("com.anatawa12.avatar-optimizer")
+                .AfterPlugin("nadena.dev.modular-avatar")
                 .Run(XRiftVrmExportPass.Instance);
         }
     }
@@ -96,7 +99,10 @@ namespace XRift.VrmExporter.Core
                 .Then.Run(XRiftRuntimePreviewPhysBoneConvertPass.Instance);
 
             // Optimizing フェーズでVRMエクスポート＆ロード処理を実行
+            // 他の最適化プラグイン（AAO, MA）の後に実行
             InPhase(BuildPhase.Optimizing)
+                .AfterPlugin("com.anatawa12.avatar-optimizer")
+                .AfterPlugin("nadena.dev.modular-avatar")
                 .Run(XRiftRuntimePreviewExportPass.Instance)
                 .Then.Run(XRiftVrmRuntimePreviewPass.Instance);
         }
