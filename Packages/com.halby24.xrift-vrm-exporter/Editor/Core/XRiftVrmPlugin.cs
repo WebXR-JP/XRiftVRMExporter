@@ -6,6 +6,7 @@
 using System.Collections.Generic;
 using System.IO;
 using nadena.dev.ndmf;
+using UniGLTF.MeshUtility;
 using UniVRM10;
 using UnityEngine;
 using XRift.VrmExporter.Components;
@@ -32,13 +33,48 @@ namespace XRift.VrmExporter.Core
 
         protected override void Configure()
         {
-            // Transforming フェーズで PhysBone → SpringBone 変換を実行
+            // Transforming フェーズでArmature回転ベイク→PhysBone変換を実行
             InPhase(BuildPhase.Transforming)
-                .Run(XRiftPhysBoneConvertPass.Instance);
+                .Run(XRiftArmatureRotationBakePass.Instance)
+                .Then.Run(XRiftPhysBoneConvertPass.Instance);
 
             // Optimizing フェーズでVRMエクスポート処理を実行
             InPhase(BuildPhase.Optimizing)
                 .Run(XRiftVrmExportPass.Instance);
+        }
+    }
+
+    /// <summary>
+    /// Armature回転をメッシュにベイクするパス
+    /// </summary>
+    internal class XRiftArmatureRotationBakePass : Pass<XRiftArmatureRotationBakePass>
+    {
+        public override string QualifiedName => "com.halby24.xrift-vrm-exporter.armature-rotation-bake";
+        public override string DisplayName => "XRift Armature Rotation Bake";
+
+        protected override void Execute(BuildContext context)
+        {
+            var state = context.GetState<XRiftBuildState>();
+            if (!state.ExportEnabled) return;
+
+            var root = context.AvatarRootObject;
+
+            // ヒエラルキー内に回転を持つTransformがあるかチェック
+            bool hasRotation = false;
+            foreach (var transform in root.GetComponentsInChildren<Transform>())
+            {
+                if (transform.localRotation != Quaternion.identity)
+                {
+                    hasRotation = true;
+                    break;
+                }
+            }
+
+            if (!hasRotation) return;
+
+            // UniGLTFのBoneNormalizerを使用してメッシュに回転をベイク
+            var meshMap = BoneNormalizer.NormalizeHierarchyFreezeMesh(root, bakeCurrentBlendShape: false);
+            BoneNormalizer.Replace(root, meshMap, KeepRotation: false);
         }
     }
 
@@ -54,14 +90,53 @@ namespace XRift.VrmExporter.Core
         protected override void Configure()
         {
             // Playモード時のみ、XRiftVrmRuntimePreviewコンポーネントがある場合に実行
-            // Transforming フェーズで PhysBone → SpringBone 変換を実行
+            // Transforming フェーズでArmature回転ベイク→PhysBone変換を実行
             InPhase(BuildPhase.Transforming)
-                .Run(XRiftRuntimePreviewPhysBoneConvertPass.Instance);
+                .Run(XRiftRuntimePreviewArmatureRotationBakePass.Instance)
+                .Then.Run(XRiftRuntimePreviewPhysBoneConvertPass.Instance);
 
             // Optimizing フェーズでVRMエクスポート＆ロード処理を実行
             InPhase(BuildPhase.Optimizing)
                 .Run(XRiftRuntimePreviewExportPass.Instance)
                 .Then.Run(XRiftVrmRuntimePreviewPass.Instance);
+        }
+    }
+
+    /// <summary>
+    /// ランタイムプレビュー用 Armature回転をメッシュにベイクするパス
+    /// </summary>
+    internal class XRiftRuntimePreviewArmatureRotationBakePass : Pass<XRiftRuntimePreviewArmatureRotationBakePass>
+    {
+        public override string QualifiedName => "com.halby24.xrift-vrm-exporter.runtime-preview.armature-rotation-bake";
+        public override string DisplayName => "XRift Runtime Preview Armature Rotation Bake";
+
+        protected override void Execute(BuildContext context)
+        {
+            // Playモード時のみ
+            if (!Application.isPlaying) return;
+
+            // XRiftVrmRuntimePreviewコンポーネントがなければスキップ
+            var preview = context.AvatarRootObject.GetComponent<XRiftVrmRuntimePreview>();
+            if (preview == null) return;
+
+            var root = context.AvatarRootObject;
+
+            // ヒエラルキー内に回転を持つTransformがあるかチェック
+            bool hasRotation = false;
+            foreach (var transform in root.GetComponentsInChildren<Transform>())
+            {
+                if (transform.localRotation != Quaternion.identity)
+                {
+                    hasRotation = true;
+                    break;
+                }
+            }
+
+            if (!hasRotation) return;
+
+            // UniGLTFのBoneNormalizerを使用してメッシュに回転をベイク
+            var meshMap = BoneNormalizer.NormalizeHierarchyFreezeMesh(root, bakeCurrentBlendShape: false);
+            BoneNormalizer.Replace(root, meshMap, KeepRotation: false);
         }
     }
 
