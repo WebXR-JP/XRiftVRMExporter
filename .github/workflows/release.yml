@@ -22,6 +22,31 @@ jobs:
           echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
           echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
+      - name: Get UniVRM version from dependencies
+        id: univrm_version
+        run: |
+          UNIVRM_VERSION=$(jq -r '.dependencies["com.vrmc.gltf"]' Packages/com.halby24.xrift-vrm-exporter/package.json)
+          echo "UNIVRM_VERSION=${UNIVRM_VERSION}" >> $GITHUB_OUTPUT
+          echo "UniVRM version: ${UNIVRM_VERSION}"
+
+      - name: Check if UniVRM already released
+        id: check_univrm
+        run: |
+          if [ -f vpm-repo/vpm.json ]; then
+            GLTF_EXISTS=$(jq -r --arg ver "${{ steps.univrm_version.outputs.UNIVRM_VERSION }}" \
+              '.packages["com.vrmc.gltf"].versions[$ver] // "null"' vpm-repo/vpm.json)
+            if [ "$GLTF_EXISTS" != "null" ]; then
+              echo "UniVRM ${{ steps.univrm_version.outputs.UNIVRM_VERSION }} already exists in vpm.json"
+              echo "SKIP_UNIVRM=true" >> $GITHUB_OUTPUT
+            else
+              echo "UniVRM ${{ steps.univrm_version.outputs.UNIVRM_VERSION }} not found, will clone and package"
+              echo "SKIP_UNIVRM=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "vpm.json not found, will create new"
+            echo "SKIP_UNIVRM=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Set version in package.json
         run: |
           cd Packages/com.halby24.xrift-vrm-exporter
@@ -30,20 +55,53 @@ jobs:
           # Update url in package.json
           sed -i 's|"url": ".*"|"url": "https://github.com/WebXR-JP/XRiftVRMExporter/releases/download/v${{ steps.version.outputs.VERSION }}/com.halby24.xrift-vrm-exporter-${{ steps.version.outputs.VERSION }}.zip"|' package.json
 
-      - name: Create package zip
+      - name: Create main package zip
         run: |
           cd Packages
           zip -r com.halby24.xrift-vrm-exporter-${{ steps.version.outputs.VERSION }}.zip \
             com.halby24.xrift-vrm-exporter \
             -x "*.git*" "*.DS_Store"
 
+      - name: Clone UniVRM repository
+        if: steps.check_univrm.outputs.SKIP_UNIVRM != 'true'
+        run: |
+          git clone --depth 1 --branch v${{ steps.univrm_version.outputs.UNIVRM_VERSION }} \
+            https://github.com/vrm-c/UniVRM.git UniVRM-temp
+          echo "Cloned UniVRM v${{ steps.univrm_version.outputs.UNIVRM_VERSION }}"
+          ls -la UniVRM-temp/Packages/
+
+      - name: Create UniVRM package zips
+        if: steps.check_univrm.outputs.SKIP_UNIVRM != 'true'
+        run: |
+          cd UniVRM-temp/Packages
+
+          # UniGLTF (com.vrmc.gltf)
+          echo "Creating com.vrmc.gltf zip..."
+          zip -r ../../com.vrmc.gltf-${{ steps.univrm_version.outputs.UNIVRM_VERSION }}.zip \
+            UniGLTF \
+            -x "*.git*" "*.DS_Store"
+
+          # VRM10 (com.vrmc.vrm)
+          echo "Creating com.vrmc.vrm zip..."
+          zip -r ../../com.vrmc.vrm-${{ steps.univrm_version.outputs.UNIVRM_VERSION }}.zip \
+            VRM10 \
+            -x "*.git*" "*.DS_Store"
+
+          cd ../..
+          echo "Created UniVRM packages:"
+          ls -la com.vrmc.*.zip
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: Packages/com.halby24.xrift-vrm-exporter-${{ steps.version.outputs.VERSION }}.zip
+          files: |
+            Packages/com.halby24.xrift-vrm-exporter-${{ steps.version.outputs.VERSION }}.zip
+            com.vrmc.gltf-${{ steps.univrm_version.outputs.UNIVRM_VERSION }}.zip
+            com.vrmc.vrm-${{ steps.univrm_version.outputs.UNIVRM_VERSION }}.zip
           draft: false
           prerelease: false
           generate_release_notes: true
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -54,7 +112,16 @@ jobs:
 
       - name: Update VPM Repository
         run: |
-          python scripts/update-vpm.py ${{ steps.version.outputs.VERSION }}
+          if [ "${{ steps.check_univrm.outputs.SKIP_UNIVRM }}" == "true" ]; then
+            python scripts/update-vpm.py \
+              --main-version ${{ steps.version.outputs.VERSION }} \
+              --skip-univrm
+          else
+            python scripts/update-vpm.py \
+              --main-version ${{ steps.version.outputs.VERSION }} \
+              --univrm-version ${{ steps.univrm_version.outputs.UNIVRM_VERSION }} \
+              --univrm-path UniVRM-temp/Packages
+          fi
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
