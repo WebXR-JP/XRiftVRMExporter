@@ -48,7 +48,9 @@
       "depth": 0,
       "source": "embedded",
       "dependencies": {
-        "com.unity.nuget.newtonsoft-json": "3.2.1"
+        "com.unity.nuget.newtonsoft-json": "3.2.1",
+        "com.vrmc.gltf": "0.131.0",
+        "com.vrmc.vrm": "0.131.0"
       }
     },
     "com.ramtype0.meshia.mesh-simplification": {
