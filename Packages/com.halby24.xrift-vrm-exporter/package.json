@@ -29,6 +29,8 @@
   },
   "vpmDependencies": {
     "nadena.dev.ndmf": ">=1.8.0",
-    "com.vrmc.vrm": ">=0.128.0"
+    "com.vrmc.vrm": ">=0.128.0",
+    "com.vrchat.avatars": ">=3.7.0",
+    "jp.lilxyzw.liltoon": ">=1.8.0"
   }
 }

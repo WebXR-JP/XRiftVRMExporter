@@ -91,7 +91,8 @@ jobs:
           echo "Created UniVRM packages:"
           ls -la com.vrmc.*.zip
 
-      - name: Create Release
+      - name: Create Release (with UniVRM)
+        if: steps.check_univrm.outputs.SKIP_UNIVRM != 'true'
         uses: softprops/action-gh-release@v1
         with:
           files: |
@@ -101,7 +102,20 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
-          fail_on_unmatched_files: false
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release (main package only)
+        if: steps.check_univrm.outputs.SKIP_UNIVRM == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            Packages/com.halby24.xrift-vrm-exporter-${{ steps.version.outputs.VERSION }}.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -129,3 +143,13 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./vpm-repo
           keep_files: false
+
+      - name: Commit updated package.json to repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          git add Packages/com.halby24.xrift-vrm-exporter/package.json
+          git commit -m "chore: update package.json version to ${{ steps.version.outputs.VERSION }}" || echo "No changes to commit"
+          git push origin main

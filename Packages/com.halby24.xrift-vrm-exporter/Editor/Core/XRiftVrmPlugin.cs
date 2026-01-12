@@ -33,17 +33,18 @@ namespace XRift.VrmExporter.Core
 
         protected override void Configure()
         {
-            // Transforming フェーズでArmature回転ベイク→PhysBone変換を実行
+            // Transforming フェーズでArmature回転ベイクを実行
             InPhase(BuildPhase.Transforming)
-                .Run(XRiftArmatureRotationBakePass.Instance)
-                .Then.Run(XRiftPhysBoneConvertPass.Instance);
+                .Run(XRiftArmatureRotationBakePass.Instance);
 
-            // Optimizing フェーズでVRMエクスポート処理を実行
+            // Optimizing フェーズでPhysBone変換→VRMエクスポート処理を実行
             // 他の最適化プラグイン（AAO, MA）の後に実行
+            // ※ Vrm10InstanceをAAOより前に追加するとNullReferenceExceptionが発生するため
             InPhase(BuildPhase.Optimizing)
                 .AfterPlugin("com.anatawa12.avatar-optimizer")
                 .AfterPlugin("nadena.dev.modular-avatar")
-                .Run(XRiftVrmExportPass.Instance);
+                .Run(XRiftPhysBoneConvertPass.Instance)
+                .Then.Run(XRiftVrmExportPass.Instance);
         }
     }
 
@@ -92,18 +93,18 @@ namespace XRift.VrmExporter.Core
 
         protected override void Configure()
         {
-            // Playモード時のみ、XRiftVrmRuntimePreviewコンポーネントがある場合に実行
-            // Transforming フェーズでArmature回転ベイク→PhysBone変換を実行
+            // Transforming フェーズでArmature回転ベイクを実行
             InPhase(BuildPhase.Transforming)
-                .Run(XRiftRuntimePreviewArmatureRotationBakePass.Instance)
-                .Then.Run(XRiftRuntimePreviewPhysBoneConvertPass.Instance);
+                .Run(XRiftRuntimePreviewArmatureRotationBakePass.Instance);
 
-            // Optimizing フェーズでVRMエクスポート＆ロード処理を実行
+            // Optimizing フェーズでPhysBone変換→VRMエクスポート＆ロード処理を実行
             // 他の最適化プラグイン（AAO, MA）の後に実行
+            // ※ Vrm10InstanceをAAOより前に追加するとNullReferenceExceptionが発生するため
             InPhase(BuildPhase.Optimizing)
                 .AfterPlugin("com.anatawa12.avatar-optimizer")
                 .AfterPlugin("nadena.dev.modular-avatar")
-                .Run(XRiftRuntimePreviewExportPass.Instance)
+                .Run(XRiftRuntimePreviewPhysBoneConvertPass.Instance)
+                .Then.Run(XRiftRuntimePreviewExportPass.Instance)
                 .Then.Run(XRiftVrmRuntimePreviewPass.Instance);
         }
     }
