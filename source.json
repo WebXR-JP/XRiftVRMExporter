@@ -1,0 +1,19 @@
+{
+  "name": "XRift VRM Exporter",
+  "id": "com.halby24.xrift-vrm-exporter-listing",
+  "url": "https://webxr-jp.github.io/XRiftVRMExporter/index.json",
+  "author": {
+    "name": "halby24",
+    "url": "https://github.com/WebXR-JP"
+  },
+  "description": "VRM 1.0 exporter for XRift platform with NDMF integration. Exports VRChat avatars to VRM 1.0 format.",
+  "infoLink": {
+    "url": "https://github.com/WebXR-JP/XRiftVRMExporter",
+    "text": "View on GitHub"
+  },
+  "bannerUrl": "",
+  "githubRepos": [
+    "WebXR-JP/XRiftVRMExporter"
+  ],
+  "packages": []
+}

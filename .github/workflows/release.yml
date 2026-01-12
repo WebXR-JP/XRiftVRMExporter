@@ -137,19 +137,12 @@ jobs:
               --univrm-path UniVRM-temp/Packages
           fi
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./vpm-repo
-          keep_files: false
-
       - name: Commit updated package.json to repository
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git checkout main
-          git add Packages/com.halby24.xrift-vrm-exporter/package.json
-          git commit -m "chore: update package.json version to ${{ steps.version.outputs.VERSION }}" || echo "No changes to commit"
+          git add Packages/com.halby24.xrift-vrm-exporter/package.json vpm-repo/vpm.json
+          git commit -m "chore: update package.json and vpm.json for v${{ steps.version.outputs.VERSION }}" || echo "No changes to commit"
           git push origin main
