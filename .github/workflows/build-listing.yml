@@ -43,15 +43,19 @@ jobs:
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj') }}
 
+      # package-list-actionはdocsフォルダに出力するため、先に作成
+      - name: Create docs directory
+        run: mkdir -p docs
+
       - name: Build Listing
         run: ci/build.cmd BuildRepoListing --root ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # vpm.jsonを生成されたWebsiteに追加
-      - name: Copy VPM files to Website
+      # vpm.jsonをdocsに追加
+      - name: Copy VPM files to docs
         run: |
-          cp vpm-repo/vpm.json Website/vpm.json
+          cp vpm-repo/vpm.json docs/vpm.json
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -59,7 +63,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: Website
+          path: docs
 
       - name: Deploy to GitHub Pages
         id: deployment

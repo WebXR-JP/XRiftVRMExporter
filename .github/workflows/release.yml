@@ -57,9 +57,9 @@ jobs:
 
       - name: Create main package zip
         run: |
-          cd Packages
-          zip -r com.halby24.xrift-vrm-exporter-${{ steps.version.outputs.VERSION }}.zip \
-            com.halby24.xrift-vrm-exporter \
+          cd Packages/com.halby24.xrift-vrm-exporter
+          zip -r ../../com.halby24.xrift-vrm-exporter-${{ steps.version.outputs.VERSION }}.zip \
+            . \
             -x "*.git*" "*.DS_Store"
 
       - name: Clone UniVRM repository
@@ -73,21 +73,22 @@ jobs:
       - name: Create UniVRM package zips
         if: steps.check_univrm.outputs.SKIP_UNIVRM != 'true'
         run: |
-          cd UniVRM-temp/Packages
-
           # UniGLTF (com.vrmc.gltf)
           echo "Creating com.vrmc.gltf zip..."
-          zip -r ../../com.vrmc.gltf-${{ steps.univrm_version.outputs.UNIVRM_VERSION }}.zip \
-            UniGLTF \
+          cd UniVRM-temp/Packages/UniGLTF
+          zip -r ../../../com.vrmc.gltf-${{ steps.univrm_version.outputs.UNIVRM_VERSION }}.zip \
+            . \
             -x "*.git*" "*.DS_Store"
+          cd ../../..
 
           # VRM10 (com.vrmc.vrm)
           echo "Creating com.vrmc.vrm zip..."
-          zip -r ../../com.vrmc.vrm-${{ steps.univrm_version.outputs.UNIVRM_VERSION }}.zip \
-            VRM10 \
+          cd UniVRM-temp/Packages/VRM10
+          zip -r ../../../com.vrmc.vrm-${{ steps.univrm_version.outputs.UNIVRM_VERSION }}.zip \
+            . \
             -x "*.git*" "*.DS_Store"
+          cd ../../..
 
-          cd ../..
           echo "Created UniVRM packages:"
           ls -la com.vrmc.*.zip
 
@@ -96,7 +97,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            Packages/com.halby24.xrift-vrm-exporter-${{ steps.version.outputs.VERSION }}.zip
+            com.halby24.xrift-vrm-exporter-${{ steps.version.outputs.VERSION }}.zip
             com.vrmc.gltf-${{ steps.univrm_version.outputs.UNIVRM_VERSION }}.zip
             com.vrmc.vrm-${{ steps.univrm_version.outputs.UNIVRM_VERSION }}.zip
           draft: false
@@ -111,7 +112,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            Packages/com.halby24.xrift-vrm-exporter-${{ steps.version.outputs.VERSION }}.zip
+            com.halby24.xrift-vrm-exporter-${{ steps.version.outputs.VERSION }}.zip
           draft: false
           prerelease: false
           generate_release_notes: true
