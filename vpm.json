@@ -14,7 +14,7 @@
           "description": "VRM 1.0 exporter for XRift platform with NDMF integration. Exports VRChat avatars to VRM 1.0 format with PhysBone to SpringBone conversion and lilToon to MToon material conversion.",
           "author": {
             "name": "halby24",
-            "url": "https://github.com/WebXR-JP/XRiftVRMExporter/releases/download/v0.1.0/com.halby24.xrift-vrm-exporter-0.1.0.zip"
+            "url": "https://github.com/WebXR-JP"
           },
           "license": "MPL-2.0",
           "keywords": [
@@ -38,6 +38,120 @@
           "vpmDependencies": {
             "nadena.dev.ndmf": ">=1.8.0"
           }
+        },
+        "0.1.1": {
+          "name": "com.halby24.xrift-vrm-exporter",
+          "displayName": "XRift VRM Exporter",
+          "version": "0.1.1",
+          "unity": "2022.3",
+          "description": "VRM 1.0 exporter for XRift platform with NDMF integration. Exports VRChat avatars to VRM 1.0 format with PhysBone to SpringBone conversion and lilToon to MToon material conversion.",
+          "author": {
+            "name": "halby24",
+            "url": "https://github.com/WebXR-JP/XRiftVRMExporter/releases/download/v0.1.1/com.halby24.xrift-vrm-exporter-0.1.1.zip"
+          },
+          "license": "MPL-2.0",
+          "keywords": [
+            "vrm",
+            "exporter",
+            "xrift",
+            "vrchat",
+            "ndmf",
+            "avatar"
+          ],
+          "url": "https://github.com/WebXR-JP/XRiftVRMExporter/releases/download/v0.1.1/com.halby24.xrift-vrm-exporter-0.1.1.zip",
+          "repo": "https://webxr-jp.github.io/XRiftVRMExporter/vpm.json",
+          "documentationUrl": "https://github.com/WebXR-JP/XRiftVRMExporter/blob/main/Packages/com.halby24.xrift-vrm-exporter/README.md",
+          "changelogUrl": "https://github.com/WebXR-JP/XRiftVRMExporter/blob/main/Packages/com.halby24.xrift-vrm-exporter/CHANGELOG.md",
+          "licensesUrl": "https://github.com/WebXR-JP/XRiftVRMExporter/blob/main/LICENSE",
+          "dependencies": {
+            "com.unity.nuget.newtonsoft-json": "3.2.1",
+            "com.vrmc.gltf": "0.131.0",
+            "com.vrmc.vrm": "0.131.0"
+          },
+          "vpmDependencies": {
+            "nadena.dev.ndmf": ">=1.8.0",
+            "com.vrmc.vrm": ">=0.128.0",
+            "com.vrchat.avatars": ">=3.7.0",
+            "jp.lilxyzw.liltoon": ">=1.8.0"
+          }
+        }
+      }
+    },
+    "com.vrmc.gltf": {
+      "versions": {
+        "0.131.0": {
+          "name": "com.vrmc.gltf",
+          "version": "0.131.0",
+          "displayName": "UniGLTF",
+          "description": "GLTF importer and exporter",
+          "unity": "2021.3",
+          "keywords": [
+            "gltf"
+          ],
+          "author": {
+            "name": "VRM Consortium"
+          },
+          "dependencies": {
+            "com.unity.modules.animation": "1.0.0",
+            "com.unity.modules.imgui": "1.0.0",
+            "com.unity.modules.imageconversion": "1.0.0",
+            "com.unity.test-framework": "1.4.6",
+            "com.unity.mathematics": "1.2.6"
+          },
+          "samples": [
+            {
+              "displayName": "GltfViewer",
+              "description": "UniGLTF runtime loader sample",
+              "path": "Samples~/GltfViewer"
+            }
+          ],
+          "url": "https://github.com/WebXR-JP/XRiftVRMExporter/releases/download/v0.1.1/com.vrmc.gltf-0.131.0.zip",
+          "repo": "https://webxr-jp.github.io/XRiftVRMExporter/vpm.json",
+          "licensesUrl": "https://github.com/vrm-c/UniVRM/blob/master/LICENSE.txt"
+        }
+      }
+    },
+    "com.vrmc.vrm": {
+      "versions": {
+        "0.131.0": {
+          "name": "com.vrmc.vrm",
+          "version": "0.131.0",
+          "displayName": "VRM-1.0",
+          "description": "VRM-1.0 importer",
+          "unity": "2021.3",
+          "keywords": [
+            "vrm",
+            "importer",
+            "avatar",
+            "vr"
+          ],
+          "author": {
+            "name": "VRM Consortium"
+          },
+          "dependencies": {
+            "com.unity.timeline": "1.7.6",
+            "com.vrmc.gltf": "0.131.0"
+          },
+          "samples": [
+            {
+              "displayName": "VRM10Viewer",
+              "description": "VRM10 runtime loader sample",
+              "path": "Samples~/VRM10Viewer"
+            },
+            {
+              "displayName": "VRM10FirstPersonSample",
+              "description": "First Person layer sample with multi camera",
+              "path": "Samples~/VRM10FirstPersonSample"
+            },
+            {
+              "displayName": "ClothSample",
+              "description": "Experimental cloth implementation",
+              "path": "Samples~/ClothSample"
+            }
+          ],
+          "url": "https://github.com/WebXR-JP/XRiftVRMExporter/releases/download/v0.1.1/com.vrmc.vrm-0.131.0.zip",
+          "repo": "https://webxr-jp.github.io/XRiftVRMExporter/vpm.json",
+          "licensesUrl": "https://github.com/vrm-c/UniVRM/blob/master/LICENSE.txt"
         }
       }
     }
