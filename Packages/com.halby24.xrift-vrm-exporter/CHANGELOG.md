@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- Runtime preview feature (incomplete/WIP)
+  - Removed XRiftVrmRuntimePreview component
+  - Removed runtime preview NDMF plugin and passes
+
 ## [0.1.0] - 2026-01-04
 
 ### Added
@@ -31,8 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Build UI with export path persistence
   - XRiftBuildUI for manual export
   - Export path saved to EditorPrefs
-- Runtime preview component (WIP)
-  - XRiftVrmRuntimePreview for in-editor preview
 
 ### Dependencies
 - nadena.dev.ndmf >= 1.8.0
