@@ -13,7 +13,7 @@ namespace XRift.VrmExporter.Shared.Core
     /// XRift ビルド状態
     /// ビルドプロセス中に共有されるデータを保持する
     /// </summary>
-    internal class XRiftBuildState
+    public class XRiftBuildState
     {
 #if XRIFT_HAS_NDMF_PLATFORM
         /// <summary>

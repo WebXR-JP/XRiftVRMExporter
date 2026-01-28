@@ -14,7 +14,7 @@ namespace XRift.VrmExporter.Shared.Utils
     /// <summary>
     /// Renderer と Material の対応関係を保持するクラス
     /// </summary>
-    internal sealed class MaterialVariantMapping
+    public sealed class MaterialVariantMapping
     {
         public Renderer Renderer { get; set; } = null!;
         public Material[] Materials { get; set; } = { };
@@ -23,7 +23,7 @@ namespace XRift.VrmExporter.Shared.Utils
     /// <summary>
     /// Material Variant（衣装切り替え等）を表すクラス
     /// </summary>
-    internal sealed class MaterialVariant
+    public sealed class MaterialVariant
     {
         public string? Name { get; set; }
         public MaterialVariantMapping[] Mappings { get; set; } = { };

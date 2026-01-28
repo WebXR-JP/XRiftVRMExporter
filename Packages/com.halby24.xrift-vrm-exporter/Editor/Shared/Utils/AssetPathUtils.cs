@@ -17,7 +17,7 @@ namespace XRift.VrmExporter.Shared.Utils
     /// <summary>
     /// アセットパス関連のユーティリティ
     /// </summary>
-    internal static class AssetPathUtils
+    public static class AssetPathUtils
     {
         private const string CloneSuffix = "(Clone)";
 

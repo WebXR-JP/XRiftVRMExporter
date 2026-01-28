@@ -143,7 +143,7 @@ namespace XRift.VrmExporter.Platforms.VRM.Core
     /// <summary>
     /// 一時ディレクトリへのアセット保存実装
     /// </summary>
-    internal class TempAssetSaver : IAssetSaver
+    internal class TempAssetSaver : Shared.Core.IAssetSaver
     {
         private readonly string _basePath;
         private readonly Dictionary<string, UnityEngine.Object> _assets = new();
