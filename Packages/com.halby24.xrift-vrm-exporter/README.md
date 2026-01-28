@@ -15,6 +15,23 @@ VRM 1.0 exporter for XRift platform with NDMF integration.
 - **Non-Destructive Build Process**: Preserves your original avatar during export
 - **Expression Support**: Converts VRChat expression parameters to VRM expressions
 
+## Platform Selection
+
+XRift VRM Exporter supports multiple export formats:
+
+1. **VRM Platform** - VRM 1.0 format (`.vrm`)
+   - Full VRM 1.0 specification support
+   - PhysBone to SpringBone conversion
+   - lilToon to MToon material conversion
+   - VRChat avatar compatibility
+
+2. **Avatar Format Platform** - XRift custom format (`.xrift`) ※Coming Soon
+   - Native XRift avatar format
+   - Currently stub implementation
+   - Future: Extended features beyond VRM specification
+
+Select your desired platform in the NDMF console when building your avatar.
+
 ## Installation
 
 ### Via VCC (VRChat Creator Companion)

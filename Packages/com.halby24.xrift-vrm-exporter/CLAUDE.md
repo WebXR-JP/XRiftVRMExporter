@@ -1,47 +1,61 @@
 # XRift VRM Exporter
 
-Modular Avatar用VRM 1.0エクスポートシステム
+NDMF対応のマルチプラットフォームエクスポーター
 
-## アーキテクチャ
+## アーキテクチャ (Multi-Platform)
 
 ### パッケージ構造
 ```
 Editor/
-├── Core/           # NDMFプラグイン・プラットフォーム
-│   ├── XRiftVrmPlugin.cs       # NDMFプラグイン登録
-│   ├── XRiftVrmPlatform.cs     # INDMFPlatformProvider実装
-│   ├── XRiftVrmExporter.cs     # メインエクスポーター
-│   └── XRiftBuildState.cs      # ビルド状態管理
-├── Converters/     # VRM変換処理
-│   └── BoneResolver.cs         # ボーンウェイト解決
-├── Components/     # 設定コンポーネント（未実装）
-├── UI/             # NDMF BuildUI
-│   └── XRiftBuildUI.cs         # ビルドUIコントロール
-├── VRM/            # glTF/VRM データ構造
-│   └── Document.cs             # glTF/VRM型定義
-└── Utils/          # ユーティリティ
-    ├── UnityExtensions.cs      # Unity型拡張メソッド
-    ├── MaterialVariant.cs      # MaterialVariant型
-    └── AssetPathUtils.cs       # パスユーティリティ
+├── Shared/              # 共有インフラ
+│   ├── Core/           # 基底抽象クラス
+│   └── Utils/          # 共通ユーティリティ
+├── Platforms/          # プラットフォーム実装
+│   ├── VRM/           # VRM 1.0 エクスポート
+│   └── AvatarFormat/  # XRift Avatar Format
+└── (旧Core/, Components/, UI/ は削除)
 ```
 
+### プラットフォーム
+
+#### VRM Platform (`com.halby24.xrift-vrm-exporter.vrm`)
+- VRM 1.0形式でエクスポート
+- PhysBone → SpringBone変換
+- lilToon → MToon材質変換
+- 拡張子: `.vrm`
+
+#### Avatar Format Platform (`com.halby24.xrift-vrm-exporter.avatarformat`)
+- XRift独自フォーマット（実装予定）
+- 拡張子: `.xrift`
+- 現在: スタブ実装
+
 ### 主要クラス
-- `XRiftVrmPlugin : Plugin<T>` - NDMFプラグイン登録
-- `XRiftVrmPlatform : INDMFPlatformProvider` - プラットフォーム定義
-- `XRiftVrmExporter` - VRMエクスポートコア
-- `XRiftBuildState` - ビルドプロセス状態管理
-- `BoneResolver` - SkinnedMeshRendererボーンウェイト解決
+
+**Shared:**
+- `XRiftBasePlatform : INDMFPlatformProvider` - プラットフォーム基底
+- `XRiftBasePlugin<T> : Plugin<T>` - プラグイン基底
+- `XRiftBaseExporter` - エクスポーター基底
+- `XRiftBaseBuildUI : BuildUIElement` - BuildUI基底
+- `XRiftBuildState` - ビルド状態管理
+
+**VRM Platform:**
+- `XRiftVrmPlatform : XRiftBasePlatform` - VRMプラットフォーム
+- `XRiftVrmPlugin : Plugin<T>` - VRMプラグイン
+- `XRiftVrmExporter` - VRMエクスポーター
+- `XRiftVrmBuildUI : XRiftBaseBuildUI` - VRM BuildUI
+- `XRiftVrmDescriptor` - VRM設定コンポーネント
+
+**Avatar Format Platform:**
+- `XRiftAvatarFormatPlatform : XRiftBasePlatform`
+- `XRiftAvatarFormatPlugin : Plugin<T>`
+- `XRiftAvatarFormatExporter`
+- `XRiftAvatarFormatBuildUI : XRiftBaseBuildUI`
+- `XRiftAvatarFormatDescriptor`
 
 ### 依存関係
 - `nadena.dev.ndmf` >= 1.8.0
-- `com.vrchat.avatars` (条件付き)
-- `jp.lilxyzw.liltoon` (条件付き)
-
-### 条件付きコンパイル
-- `XRIFT_HAS_VRCHAT_SDK` - VRChat Avatar SDK
-- `XRIFT_HAS_LILTOON` - lilToon シェーダー
-- `XRIFT_HAS_NDMF_PLATFORM` - NDMF 1.8+ プラットフォーム機能
-- `XRIFT_HAS_MODULAR_AVATAR` - Modular Avatar
+- `com.vrchat.avatars` (VRM Platform)
+- `jp.lilxyzw.liltoon` (VRM Platform, オプション)
 
 ### ライセンス
 MPL-2.0（ndmf-vrm-exporter由来のコードを含む）
