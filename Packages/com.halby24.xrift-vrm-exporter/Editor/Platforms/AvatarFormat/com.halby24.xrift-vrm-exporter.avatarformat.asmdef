@@ -5,7 +5,8 @@
         "GUID:62ced99b048af7f4d8dfe4bed8373d76",
         "GUID:fe747755f7b44e048820525b07f9b956",
         "GUID:e2003ab05d6ebdb48b7639633889ae3c",
-        "GUID:04624204cea88fb4bbbdef7a7d767f62"
+        "GUID:04624204cea88fb4bbbdef7a7d767f62",
+        "GUID:33095611f6144a99aa83f50af327d135"
     ],
     "includePlatforms": [],
     "excludePlatforms": [
@@ -33,7 +34,8 @@
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
-        "Newtonsoft.Json.dll"
+        "Newtonsoft.Json.dll",
+        "Google.Protobuf.dll"
     ],
     "autoReferenced": true,
     "defineConstraints": [],
