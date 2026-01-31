@@ -1,0 +1,3 @@
+[submodule "AvatarFormatDefinition"]
+	path = Packages/com.halby24.xrift-vrm-exporter/Editor/Platforms/AvatarFormat/Protobuf~/Definition
+	url = https://github.com/WebXR-JP/avatar-renderer.git
