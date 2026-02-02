@@ -465,17 +465,17 @@ namespace XRift.VrmExporter.Platforms.VRM.Core
             var useMatCap = src.HasProperty("_UseMatCap") && src.GetFloat("_UseMatCap") == 1.0f;
             if (!useMatCap)
             {
-                mtoon.MatcapFactor = new[] { 0f, 0f, 0f };
+                // MatCap無効時は何も設定しない（MToonのデフォルト値を使用）
                 return;
             }
 
-            // MToonにはMatcapMask機能がないため、lilToonでマスクが設定されている場合はMatcap自体をスキップ
+            // MToonにはMatCapマスク機能がないため、マスクが設定されている場合はMatCapを完全に無効化
+            // MatcapFactorを設定せずにリターンすることで、MToon拡張にMatCap情報を含めない
             if (src.HasProperty("_MatCapBlendMask"))
             {
                 var matcapMask = src.GetTexture("_MatCapBlendMask");
                 if (matcapMask != null)
                 {
-                    mtoon.MatcapFactor = new[] { 0f, 0f, 0f };
                     return;
                 }
             }
@@ -485,7 +485,6 @@ namespace XRift.VrmExporter.Platforms.VRM.Core
             var blendMode = src.HasProperty("_MatCapBlendMode") ? src.GetFloat("_MatCapBlendMode") : 0f;
             if (Mathf.Approximately(blendMode, 3.0f))
             {
-                mtoon.MatcapFactor = new[] { 0f, 0f, 0f };
                 return;
             }
 
