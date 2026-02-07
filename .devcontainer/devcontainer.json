@@ -1,5 +1,5 @@
 {
-  "name": "Unity 2022.3.22f1",
+  "name": "XRiftVRMExporter",
   "dockerComposeFile": "docker-compose.yml",
   "service": "unity",
   "workspaceFolder": "/workspace",

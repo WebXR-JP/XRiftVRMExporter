@@ -14,6 +14,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     jq \
     && rm -rf /var/lib/apt/lists/*
 
+# .NET SDK
+RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh && \
+    chmod +x /tmp/dotnet-install.sh && \
+    /tmp/dotnet-install.sh --channel 8.0 --install-dir /usr/share/dotnet && \
+    ln -s /usr/share/dotnet/dotnet /usr/local/bin/dotnet && \
+    rm /tmp/dotnet-install.sh
+
+ENV DOTNET_ROOT=/usr/share/dotnet
+
 # vrc-get (VPM CLI tool)
 RUN ARCH=$(dpkg --print-architecture) && \
     case "$ARCH" in \
