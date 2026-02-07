@@ -10,7 +10,7 @@ services:
       - ..:/workspace:cached
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /mnt/wslg:/mnt/wslg:rw
-      - claude-code-config:/root/.claude
+      - claude-code-config:/home/vscode/.claude
     environment:
       - DISPLAY=${DISPLAY:-:0}
       - WAYLAND_DISPLAY=wayland-0

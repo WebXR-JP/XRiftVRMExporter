@@ -3,9 +3,10 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "unity",
   "workspaceFolder": "/workspace",
+  "remoteUser": "vscode",
   "postCreateCommand": "bash .devcontainer/scripts/post-create.sh",
   "containerEnv": {
-    "CLAUDE_CONFIG_DIR": "/root/.claude"
+    "CLAUDE_CONFIG_DIR": "/home/vscode/.claude"
   },
   "customizations": {
     "vscode": {

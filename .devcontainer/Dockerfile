@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     jq \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
 
 # .NET SDK
@@ -34,6 +35,13 @@ RUN ARCH=$(dpkg --print-architecture) && \
     curl -fsSL "https://github.com/vrc-get/vrc-get/releases/download/${VRC_GET_VERSION}/${VRC_ARCH}-vrc-get" -o /usr/local/bin/vrc-get && \
     chmod +x /usr/local/bin/vrc-get
 
-# Claude Code CLI
+# Non-root user
+RUN groupadd --gid 1000 vscode \
+    && useradd --uid 1000 --gid 1000 -m -s /bin/bash vscode \
+    && echo "vscode ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/vscode \
+    && chmod 0440 /etc/sudoers.d/vscode
+
+# Claude Code CLI (install as vscode user)
+USER vscode
 RUN curl -fsSL https://claude.ai/install.sh | bash
-ENV PATH="/root/.local/bin:${PATH}"
+ENV PATH="/home/vscode/.local/bin:${PATH}"

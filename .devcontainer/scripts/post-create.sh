@@ -26,7 +26,7 @@ else
 fi
 
 # 3. Check Unity license status
-ULF_DIR="/root/.local/share/unity3d/Unity"
+ULF_DIR="$HOME/.local/share/unity3d/Unity"
 if find "$ULF_DIR" -name '*.ulf' -print -quit 2>/dev/null | grep -q .; then
   echo "Unity license is already activated."
 else
