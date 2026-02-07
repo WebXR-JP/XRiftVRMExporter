@@ -4,11 +4,15 @@
   "service": "unity",
   "workspaceFolder": "/workspace",
   "postCreateCommand": "bash .devcontainer/scripts/post-create.sh",
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/root/.claude"
+  },
   "customizations": {
     "vscode": {
       "extensions": [
         "visualstudiotoolsforunity.vstuc",
-        "ms-dotnettools.csharp"
+        "ms-dotnettools.csharp",
+        "anthropic.claude-code"
       ]
     }
   }
