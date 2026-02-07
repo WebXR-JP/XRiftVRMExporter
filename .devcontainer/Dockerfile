@@ -36,3 +36,4 @@ RUN ARCH=$(dpkg --print-architecture) && \
 
 # Claude Code CLI
 RUN curl -fsSL https://claude.ai/install.sh | bash
+ENV PATH="/root/.local/bin:${PATH}"
