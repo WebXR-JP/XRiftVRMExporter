@@ -100,3 +100,6 @@ InitTestScene*.unity*
 
 *.local.*
 temp*
+
+# Devcontainer secrets
+.devcontainer/.env

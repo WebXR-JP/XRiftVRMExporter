@@ -1,0 +1,15 @@
+{
+  "name": "Unity 2022.3.22f1",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "unity",
+  "workspaceFolder": "/workspace",
+  "postCreateCommand": "bash .devcontainer/scripts/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "visualstudiotoolsforunity.vstuc",
+        "ms-dotnettools.csharp"
+      ]
+    }
+  }
+}
