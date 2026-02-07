@@ -3,15 +3,24 @@ set -euo pipefail
 
 echo "=== Post-create setup ==="
 
+# Allow workspace directory owned by different user (bind mount)
+git config --global --add safe.directory /workspace
+
 # 1. Initialize and update git submodules
 echo "Initializing git submodules..."
 cd /workspace
-git submodule update --init --recursive
+if ! git submodule update --init --recursive; then
+  echo "WARNING: git submodule update failed (credentials may not be available in container)."
+  echo "You can retry manually after setting up git credentials."
+fi
 
 # 2. Resolve VPM packages
 echo "Resolving VPM packages..."
 if command -v vrc-get &>/dev/null; then
-  vrc-get resolve --project /workspace
+  if ! vrc-get resolve --project /workspace; then
+    echo "WARNING: vrc-get resolve failed. VPM package repos may need to be added first."
+    echo "You can retry manually: vrc-get resolve --project /workspace"
+  fi
 else
   echo "WARNING: vrc-get not found. Skipping VPM package resolution."
 fi

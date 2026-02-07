@@ -22,5 +22,5 @@ RUN ARCH=$(dpkg --print-architecture) && \
       *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
     esac && \
     VRC_GET_VERSION=$(curl -fsSL https://api.github.com/repos/vrc-get/vrc-get/releases/latest | jq -r '.tag_name') && \
-    curl -fsSL "https://github.com/vrc-get/vrc-get/releases/download/${VRC_GET_VERSION}/vrc-get-${VRC_ARCH}" -o /usr/local/bin/vrc-get && \
+    curl -fsSL "https://github.com/vrc-get/vrc-get/releases/download/${VRC_GET_VERSION}/${VRC_ARCH}-vrc-get" -o /usr/local/bin/vrc-get && \
     chmod +x /usr/local/bin/vrc-get
