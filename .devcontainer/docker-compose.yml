@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    runtime: nvidia
     stdin_open: true
     tty: true
     volumes:
